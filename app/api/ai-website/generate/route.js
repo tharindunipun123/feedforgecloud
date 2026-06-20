@@ -3,7 +3,13 @@ import OpenAI from 'openai';
 import { getAdminDb } from '@/lib/firebase/admin';
 import { AI_WEBSITE_PACKAGES } from '@/data/constants';
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+function getOpenAIClient() {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+    throw new Error('OPENAI_API_KEY is not configured on the server.');
+  }
+  return new OpenAI({ apiKey });
+}
 
 function getPlanLimits(planId) {
   const pkg = AI_WEBSITE_PACKAGES.find((p) => p.id === planId);
@@ -65,7 +71,7 @@ Design style: ${style || 'modern and professional'}
 
 Generate a stunning, complete HTML page that would impress a client.`;
 
-    const completion = await openai.chat.completions.create({
+    const completion = await getOpenAIClient().chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [
         { role: 'system', content: systemPrompt },
