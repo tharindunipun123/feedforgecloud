@@ -175,24 +175,48 @@ function OverviewTab({ service, invoices }) {
 
       {showCreds && (
         <Card>
-          <h3 className="text-white font-semibold mb-4">Access Credentials</h3>
+          <h3 className="text-white font-semibold mb-4">
+            {service.type === 'live_streaming' ? 'Streaming Credentials' : 'Access Credentials'}
+          </h3>
           <div className="grid sm:grid-cols-2 gap-4 text-sm font-mono">
-            {[
-              ['IP Address', creds.ip],
-              ['Username', creds.username],
-              ['Password', creds.password],
-              ['SSH Port', creds.sshPort],
-              ['Operating System', creds.os],
-              ['Location', creds.location],
-            ].filter(([, v]) => v).map(([k, v]) => (
-              <div key={k} className="bg-black border border-neutral-800 rounded-lg px-3 py-2.5">
-                <p className="text-neutral-500 text-xs mb-1">{k}</p>
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-white text-sm truncate">{v}</span>
-                  <CopyButton value={v} />
+            {service.type === 'live_streaming' ? (
+              <>
+                {[
+                  ['Stream URL', creds.streamUrl],
+                  ['Mount Point', creds.mountPoint],
+                  ['Source Password', creds.sourcePassword],
+                  ['Admin URL', creds.adminUrl],
+                  ['Admin Password', creds.adminPassword],
+                  ['Server IP', creds.serverIp],
+                  ['Region', creds.region],
+                ].filter(([, v]) => v).map(([k, v]) => (
+                  <div key={k} className="bg-black border border-neutral-800 rounded-lg px-3 py-2.5">
+                    <p className="text-neutral-500 text-xs mb-1">{k}</p>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-white text-sm truncate">{v}</span>
+                      <CopyButton value={v} />
+                    </div>
+                  </div>
+                ))}
+              </>
+            ) : (
+              [
+                ['IP Address', creds.ip],
+                ['Username', creds.username],
+                ['Password', creds.password],
+                ['SSH Port', creds.sshPort],
+                ['Operating System', creds.os],
+                ['Location', creds.location],
+              ].filter(([, v]) => v).map(([k, v]) => (
+                <div key={k} className="bg-black border border-neutral-800 rounded-lg px-3 py-2.5">
+                  <p className="text-neutral-500 text-xs mb-1">{k}</p>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-white text-sm truncate">{v}</span>
+                    <CopyButton value={v} />
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))
+            )}
             {creds.controlPanelUrl && (
               <div className="sm:col-span-2 bg-black border border-neutral-800 rounded-lg px-3 py-2.5">
                 <p className="text-neutral-500 text-xs mb-1">Control Panel</p>

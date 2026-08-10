@@ -53,11 +53,11 @@ export function AuthProvider({ children }) {
     return result;
   }, []);
 
-  const register = useCallback(async (name, email, password) => {
+  const register = useCallback(async (name, email, password, org = {}) => {
     if (!auth) throw new Error('Firebase is not configured');
     const result = await createUserWithEmailAndPassword(auth, email, password);
     await updateProfile(result.user, { displayName: name });
-    const data = await createUserDocument(result.user, name);
+    const data = await createUserDocument(result.user, name, org);
     setUserData(data);
     return result;
   }, []);

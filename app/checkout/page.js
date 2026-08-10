@@ -11,10 +11,10 @@ import { useCart } from '@/contexts/CartContext';
 import { processCheckoutPayment } from '@/lib/firebase/firestore';
 import { formatCurrency } from '@/lib/billing/helpers';
 import { isPaymentTestMode } from '@/data/countries';
-import { resolveGenieBizCheckout, formatLkr } from '@/data/geniebiz';
-import { openPaymentPopup, markPaymentPopupOpened } from '@/lib/payment/open-payment-popup';
 import { auth } from '@/lib/firebase/config';
 import { OS_OPTIONS, SERVER_LOCATIONS } from '@/data/constants';
+import { STREAMING_REGIONS } from '@/data/streaming';
+import { hasStreamingInCart } from '@/lib/cart/helpers';
 import {
   COUNTRIES,
   getCountryName,
@@ -38,16 +38,15 @@ export default function CheckoutPage() {
     city: '',
     countryCode: '',
     zip: '',
+    organizationName: '',
+    brNumber: '',
+    organizationAddress: '',
   });
 
+  const streamingOrder = hasStreamingInCart(items);
   const paymentGateway = customer.countryCode
     ? getPaymentGatewayForCountry(customer.countryCode)
     : null;
-
-  const genieBizCheckout = paymentGateway?.id === 'geniebiz'
-    ? resolveGenieBizCheckout(items, billingCycle)
-    : null;
-  const genieBizPayment = genieBizCheckout?.eligible ? genieBizCheckout.payment : null;
 
   useEffect(() => {
     if (userData) {
@@ -55,6 +54,9 @@ export default function CheckoutPage() {
         ...c,
         name: userData.name || '',
         email: userData.email || user?.email || '',
+        organizationName: userData.organizationName || c.organizationName,
+        brNumber: userData.brNumber || c.brNumber,
+        organizationAddress: userData.organizationAddress || c.organizationAddress,
       }));
     }
   }, [userData, user]);
@@ -84,13 +86,16 @@ export default function CheckoutPage() {
   const canNext = () => {
     if (step === 0) return !!user;
     if (step === 1) {
-      return (
+      const base =
         customer.name &&
         customer.email &&
         customer.phone &&
         customer.address &&
-        customer.countryCode
-      );
+        customer.countryCode;
+      if (streamingOrder) {
+        return base && customer.organizationName && customer.brNumber;
+      }
+      return base;
     }
     return true;
   };
@@ -145,30 +150,6 @@ export default function CheckoutPage() {
 
         await clearCart();
         window.location.href = data.url;
-        return;
-      }
-
-      if (paymentGateway.id === 'geniebiz') {
-        const resolved = resolveGenieBizCheckout(items, billingCycle);
-        if (!resolved.eligible) {
-          throw new Error(resolved.error);
-        }
-
-        const { payment } = resolved;
-        const { orderId } = await processCheckoutPayment(user.uid, orderPayload, paymentGateway, {
-          testMode: false,
-          geniebizPayLink: payment.payLink,
-          geniebizAmountLkr: payment.amountLkr,
-        });
-
-        await clearCart();
-
-        const pendingUrl = `/payment/pending?orderId=${encodeURIComponent(orderId)}&amount=${payment.amountLkr}&link=${encodeURIComponent(payment.payLink)}`;
-        const popupResult = openPaymentPopup(payment.payLink);
-        if (popupResult.success) {
-          markPaymentPopupOpened(orderId);
-        }
-        router.push(pendingUrl);
         return;
       }
 
@@ -230,7 +211,7 @@ export default function CheckoutPage() {
           <Card className="space-y-4">
             <h2 className="text-lg font-semibold text-white mb-2">Customer details</h2>
             <p className="text-sm text-neutral-400 mb-2">
-              Your country determines the available payment method at checkout.
+              All payments are processed securely via Stripe in USD.
             </p>
             <Input
               label="Full name"
@@ -279,6 +260,32 @@ export default function CheckoutPage() {
               />
             </div>
 
+            {streamingOrder && (
+              <div className="border border-neutral-800 rounded-lg p-4 space-y-4">
+                <h3 className="text-white font-medium">Organization details</h3>
+                <p className="text-xs text-neutral-500">
+                  Required for live streaming service registration and compliance.
+                </p>
+                <Input
+                  label="Organization / station name"
+                  value={customer.organizationName}
+                  onChange={(e) => setCustomer({ ...customer, organizationName: e.target.value })}
+                  required
+                />
+                <Input
+                  label="Business registration number (BR)"
+                  value={customer.brNumber}
+                  onChange={(e) => setCustomer({ ...customer, brNumber: e.target.value })}
+                  required
+                />
+                <Input
+                  label="Organization address"
+                  value={customer.organizationAddress}
+                  onChange={(e) => setCustomer({ ...customer, organizationAddress: e.target.value })}
+                />
+              </div>
+            )}
+
             {paymentGateway && (
               <div className="bg-neutral-900 border border-neutral-800 rounded-lg p-4 text-sm">
                 <p className="text-neutral-400">
@@ -316,6 +323,35 @@ export default function CheckoutPage() {
                     />
                   </div>
                 )}
+                {item.type === 'live_streaming' && (
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <Select
+                      label="Streaming region"
+                      value={item.config?.region || STREAMING_REGIONS[0].id}
+                      onChange={(e) =>
+                        updateItem(item.id, { config: { ...item.config, region: e.target.value } })
+                      }
+                      options={STREAMING_REGIONS.map((r) => ({ value: r.id, label: r.name }))}
+                    />
+                    <Select
+                      label="Pay-as-you-go overages"
+                      value={item.config?.payAsYouGo ? 'yes' : 'no'}
+                      onChange={(e) =>
+                        updateItem(item.id, {
+                          config: { ...item.config, payAsYouGo: e.target.value === 'yes' },
+                        })
+                      }
+                      options={[
+                        { value: 'no', label: 'Disabled — fixed package limits' },
+                        { value: 'yes', label: 'Enabled — bill extra usage monthly' },
+                      ]}
+                    />
+                    <div className="sm:col-span-2 bg-neutral-900 border border-neutral-800 rounded-lg p-3 text-xs text-neutral-400">
+                      Node.js stack: Icecast2 + Liquidsoap. Your stream enters{' '}
+                      <span className="text-yellow-400">pending provisioning</span> after payment until our team activates your server in the selected region.
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
           </Card>
@@ -329,9 +365,16 @@ export default function CheckoutPage() {
                 <div key={item.id} className="flex justify-between text-sm py-2 border-b border-neutral-800">
                   <span className="text-neutral-300">
                     {item.name} × {item.quantity || 1}
+                    {item.type === 'live_streaming' && item.config?.region && (
+                      <span className="text-neutral-500 block text-xs mt-0.5">
+                        Region: {STREAMING_REGIONS.find((r) => r.id === item.config.region)?.name || item.config.region}
+                        {item.config?.payAsYouGo ? ' · PAYG enabled' : ''}
+                      </span>
+                    )}
                   </span>
                   <span className="text-white">
                     {formatCurrency(item.price * (item.quantity || 1))}
+                    {item.taxIncluded && <span className="text-neutral-500 text-xs block">tax incl.</span>}
                   </span>
                 </div>
               ))}
@@ -341,10 +384,15 @@ export default function CheckoutPage() {
                 <span className="text-neutral-400">Subtotal</span>
                 <span className="text-white">{formatCurrency(subtotal)}</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-neutral-400">Tax</span>
-                <span className="text-white">{formatCurrency(tax)}</span>
-              </div>
+              {tax > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-neutral-400">Tax</span>
+                  <span className="text-white">{formatCurrency(tax)}</span>
+                </div>
+              )}
+              {streamingOrder && (
+                <p className="text-xs text-neutral-500">Streaming packages include tax in the listed price.</p>
+              )}
               {discount > 0 && (
                 <div className="flex justify-between">
                   <span className="text-neutral-400">Discount</span>
@@ -353,9 +401,7 @@ export default function CheckoutPage() {
               )}
               <div className="flex justify-between font-semibold pt-2 border-t border-neutral-800">
                 <span className="text-white">Total</span>
-                <span className="text-white">
-                  {genieBizPayment ? formatLkr(genieBizPayment.amountLkr) : formatCurrency(total)}
-                </span>
+                <span className="text-white">{formatCurrency(total)}</span>
               </div>
             </div>
 
@@ -364,6 +410,18 @@ export default function CheckoutPage() {
                 <span className="text-neutral-400">Country</span>
                 <span className="text-white">{getCountryName(customer.countryCode)}</span>
               </div>
+              {streamingOrder && customer.organizationName && (
+                <>
+                  <div className="flex justify-between">
+                    <span className="text-neutral-400">Organization</span>
+                    <span className="text-white">{customer.organizationName}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-neutral-400">BR number</span>
+                    <span className="text-white font-mono text-xs">{customer.brNumber}</span>
+                  </div>
+                </>
+              )}
               <div className="flex justify-between">
                 <span className="text-neutral-400">Payment method</span>
                 <span className="text-white">{paymentGateway?.label}</span>
@@ -381,8 +439,7 @@ export default function CheckoutPage() {
               total={total}
               onPay={handlePayment}
               submitting={submitting}
-              error={error || (!genieBizPayment && paymentGateway.id === 'geniebiz' && !isPaymentTestMode() ? genieBizCheckout?.error : '')}
-              genieBizPayment={genieBizPayment}
+              error={error}
             />
           </Card>
         )}

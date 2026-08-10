@@ -96,7 +96,7 @@ export const KNOWLEDGE_BASE_ARTICLES = [
     slug: 'payment-methods',
     title: 'Payment Methods by Country',
     category: 'billing-account',
-    excerpt: 'GenieBiz for Sri Lanka EC2 plans, Stripe for international customers.',
+    excerpt: 'Stripe secure checkout for all regions. Live streaming from $165/mo tax included.',
     readTime: '3 min',
   },
   {
@@ -221,7 +221,7 @@ export const KB_ARTICLE_CONTENT = {
     sections: [
       { heading: 'Browse services', body: 'Explore EC2, pay-as-you-go, n8n, AI services, and CDN plans from the homepage or navigation menu.' },
       { heading: 'Add to cart', body: 'Select a plan and add it to your cart. You can combine multiple services in one checkout.' },
-      { heading: 'Complete payment', body: 'Sign in or register, enter billing details, and pay via GenieBiz (Sri Lanka EC2) or Stripe (international).' },
+      { heading: 'Complete payment', body: 'Sign in or register with organization details, configure your streaming region, and pay securely via Stripe.' },
     ],
   },
 };
@@ -240,6 +240,7 @@ export const NAV_SUPPORT = [
 ];
 
 export const NAV_PRICING = [
+  { href: '/live-streaming-pricing', label: 'Live Streaming Pricing' },
   { href: '/ec2-pricing', label: 'EC2 Pricing' },
   { href: '/cdn-pricing', label: 'CDN Pricing' },
   { href: '/pay-as-you-go', label: 'Pay-as-you-go EC2' },

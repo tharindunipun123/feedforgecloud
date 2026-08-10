@@ -283,6 +283,7 @@ export const LEGAL_PAGES = {
 };
 
 export const NAV_SERVICES = [
+  { href: '/live-streaming', label: 'Live Audio Streaming' },
   { href: '/ec2-hosting', label: 'EC2 Hosting' },
   { href: '/pay-as-you-go', label: 'Pay-as-you-go EC2' },
   { href: '/n8n-hosting', label: 'n8n Automation Hosting' },

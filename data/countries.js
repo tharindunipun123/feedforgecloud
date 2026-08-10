@@ -18,19 +18,12 @@ export const COUNTRIES = [
 ];
 
 export const PAYMENT_GATEWAYS = {
-  geniebiz: {
-    id: 'geniebiz',
-    name: 'GenieBiz',
-    label: 'GenieBiz (Sri Lanka)',
-    description: 'Pay in LKR via GenieBiz payment link — cards, bank transfer, and mobile wallets.',
-    region: 'Sri Lanka',
-  },
   stripe: {
     id: 'stripe',
     name: 'Stripe',
     label: 'Stripe',
-    description: 'Pay securely with international credit and debit cards via Stripe.',
-    region: 'International',
+    description: 'Pay securely with credit/debit cards via Stripe. All prices in USD.',
+    region: 'Global',
   },
 };
 
@@ -46,10 +39,8 @@ export function isSriLanka(countryCode) {
   return countryCode === 'LK';
 }
 
-export function getPaymentGatewayForCountry(countryCode) {
-  if (isSriLanka(countryCode)) {
-    return PAYMENT_GATEWAYS.geniebiz;
-  }
+/** All countries use Stripe. */
+export function getPaymentGatewayForCountry(_countryCode) {
   return PAYMENT_GATEWAYS.stripe;
 }
 

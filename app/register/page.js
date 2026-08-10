@@ -25,6 +25,9 @@ function RegisterForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
+  const [organizationName, setOrganizationName] = useState('');
+  const [brNumber, setBrNumber] = useState('');
+  const [organizationAddress, setOrganizationAddress] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -57,7 +60,11 @@ function RegisterForm() {
     }
     setLoading(true);
     try {
-      await register(name, email, password);
+      await register(name, email, password, {
+        organizationName,
+        brNumber,
+        organizationAddress,
+      });
       router.replace(redirect);
     } catch (err) {
       setError(err.message || 'Registration failed');
@@ -96,6 +103,24 @@ function RegisterForm() {
       <form onSubmit={handleSubmit} className="space-y-4 mt-4">
         <Input label="Full name" value={name} onChange={(e) => setName(e.target.value)} required />
         <Input label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" />
+        <div className="border border-neutral-800 rounded-lg p-4 space-y-4">
+          <p className="text-sm text-white font-medium">Organization (for streaming & billing)</p>
+          <Input
+            label="Organization / station name"
+            value={organizationName}
+            onChange={(e) => setOrganizationName(e.target.value)}
+          />
+          <Input
+            label="Business registration number (BR)"
+            value={brNumber}
+            onChange={(e) => setBrNumber(e.target.value)}
+          />
+          <Input
+            label="Organization address"
+            value={organizationAddress}
+            onChange={(e) => setOrganizationAddress(e.target.value)}
+          />
+        </div>
         <Input label="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required autoComplete="new-password" />
         <Input label="Confirm password" type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} required autoComplete="new-password" />
         <Button type="submit" className="w-full" disabled={loading}>{loading ? 'Creating account...' : 'Create account'}</Button>
@@ -112,7 +137,7 @@ export default function RegisterPage() {
     <PublicLayout>
       <div className="max-w-md mx-auto px-4 py-16">
         <h1 className="text-3xl font-bold text-white text-center mb-2">Create account</h1>
-        <p className="text-neutral-400 text-center mb-8">Start deploying with Feed Forge</p>
+        <p className="text-neutral-400 text-center mb-8">Start live streaming with Feed Forge</p>
         <Suspense fallback={<Card><p className="text-neutral-400 text-center py-8">Loading...</p></Card>}>
           <RegisterForm />
         </Suspense>

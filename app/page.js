@@ -6,6 +6,7 @@ import PublicLayout from '@/components/layout/PublicLayout';
 import { Button } from '@/components/ui';
 import { VpsPricingCard } from '@/components/home/PricingCard';
 import { PricingCard } from '@/components/home/PricingCard';
+import { StreamingPricingCard } from '@/components/home/PricingCard';
 import {
   EC2_PACKAGES,
   N8N_PACKAGES,
@@ -15,11 +16,12 @@ import {
   FAQ_ITEMS,
   BRAND_NAME,
 } from '@/data/constants';
+import { STREAMING_PACKAGES } from '@/data/streaming';
 import { CDN_PLANS } from '@/data/cdn';
 import CdnPlanCard from '@/components/cdn/CdnPlanCard';
 import CdnNetworkMap from '@/components/home/CdnNetworkMap';
 import { useCart } from '@/contexts/CartContext';
-import { createVpsCartItem, createServiceCartItem, createCdnCartItem } from '@/lib/cart/helpers';
+import { createVpsCartItem, createServiceCartItem, createCdnCartItem, createStreamingCartItem } from '@/lib/cart/helpers';
 import { useRouter } from 'next/navigation';
 
 export default function HomePage() {
@@ -28,6 +30,11 @@ export default function HomePage() {
 
   const handleAddVps = async (pkg) => {
     await addItem(createVpsCartItem(pkg));
+    router.push('/cart');
+  };
+
+  const handleAddStreaming = async (pkg) => {
+    await addItem(createStreamingCartItem(pkg));
     router.push('/cart');
   };
 
@@ -62,11 +69,11 @@ export default function HomePage() {
               </div>
 
               <div className="flex flex-col sm:flex-row gap-4">
-                <Link href="/register">
-                  <Button size="lg">Start now — it&apos;s free</Button>
+                <Link href="/live-streaming-pricing">
+                  <Button size="lg">Live streaming from $165/mo</Button>
                 </Link>
-                <Link href="/ec2-pricing">
-                  <Button variant="secondary" size="lg">View EC2 plans</Button>
+                <Link href="/register">
+                  <Button variant="secondary" size="lg">Create account</Button>
                 </Link>
               </div>
 
@@ -100,6 +107,28 @@ export default function HomePage() {
                 />
               </div>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Live Streaming */}
+      <section className="border-t border-neutral-800 py-20 bg-gradient-to-b from-purple-950/20 to-black">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-12">
+            <div>
+              <h2 className="text-3xl font-bold text-white mb-2">Live Audio Streaming</h2>
+              <p className="text-neutral-400">
+                Node.js streaming servers — Icecast2 + Liquidsoap. Tax-included pricing from $165/mo.
+              </p>
+            </div>
+            <Link href="/live-streaming">
+              <Button variant="secondary">Learn more</Button>
+            </Link>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {STREAMING_PACKAGES.map((pkg) => (
+              <StreamingPricingCard key={pkg.id} pkg={pkg} onAddToCart={handleAddStreaming} />
+            ))}
           </div>
         </div>
       </section>

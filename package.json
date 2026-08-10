@@ -6,6 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start -p 3005",
+    "provision:customer": "node --env-file=.env.local scripts/provision-customer.mjs",
+    "update:service-ssh": "node --env-file=.env.local scripts/update-service-ssh.mjs",
     "lint": "eslint"
   },
   "dependencies": {

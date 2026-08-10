@@ -3,7 +3,7 @@ import { PAYG_RATES } from '@/data/constants';
 export const ON_DEMAND_DEFAULT_SETTINGS = {
   globallyEnabled: true,
   userCanEnable: true,
-  eligibleTypes: ['ec2', 'vps', 'n8n'],
+  eligibleTypes: ['ec2', 'vps', 'n8n', 'live_streaming'],
   rates: { ...PAYG_RATES },
   billingNote: 'On-demand usage is calculated from actual resource consumption and invoiced at the end of each billing period.',
 };
@@ -12,6 +12,7 @@ export const ON_DEMAND_SERVICE_TYPES = [
   { id: 'ec2', label: 'EC2 Hosting' },
   { id: 'vps', label: 'VPS Hosting' },
   { id: 'n8n', label: 'n8n Automation' },
+  { id: 'live_streaming', label: 'Live Audio Streaming' },
 ];
 
 export function mergeOnDemandSettings(platformSettings = {}) {
