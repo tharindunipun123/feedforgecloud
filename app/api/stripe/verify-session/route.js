@@ -6,10 +6,14 @@ import { getAdminDb } from '@/lib/firebase/admin';
 
 export async function POST(request) {
   try {
-    const decoded = await verifyAuthToken(request);
-    if (!decoded) {
-      return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
+    const authResult = await verifyAuthToken(request);
+    if (!authResult.ok) {
+      return NextResponse.json(
+        { error: authResult.message, code: authResult.code },
+        { status: authResult.code === 'admin_not_configured' ? 503 : 401 }
+      );
     }
+    const decoded = authResult.decoded;
 
     const { sessionId, orderId } = await request.json();
     if (!sessionId) {

@@ -135,7 +135,10 @@ export default function CheckoutPage() {
       }
 
       if (paymentGateway.id === 'stripe') {
-        const idToken = await auth.currentUser.getIdToken();
+        if (!auth?.currentUser) {
+          throw new Error('Your session expired. Please sign in again.');
+        }
+        const idToken = await auth.currentUser.getIdToken(true);
         const res = await fetch('/api/stripe/create-checkout-session', {
           method: 'POST',
           headers: {
