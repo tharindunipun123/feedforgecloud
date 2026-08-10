@@ -10,11 +10,9 @@ import {
   calculateCartSubtotal,
 } from '@/lib/cart/helpers';
 import { saveCartToFirestore, getCartFromFirestore } from '@/lib/firebase/firestore';
-import { calculateTax, calculateTotal } from '@/lib/billing/helpers';
+import { calculateCartTax, calculateTotal } from '@/lib/billing/helpers';
 
 const CartContext = createContext(null);
-
-const TAX_RATE = 0;
 
 export function CartProvider({ children }) {
   const { user } = useAuth();
@@ -130,7 +128,7 @@ export function CartProvider({ children }) {
   }, []);
 
   const subtotal = calculateCartSubtotal(items, billingCycle);
-  const tax = calculateTax(subtotal, TAX_RATE);
+  const tax = calculateCartTax(items);
   const total = calculateTotal(subtotal, tax, discount);
   const itemCount = items.reduce((sum, i) => sum + (i.quantity || 1), 0);
 

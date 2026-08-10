@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { Button } from '@/components/ui';
-import { formatCurrency } from '@/lib/billing/helpers';
+import { formatCurrency, CHECKOUT_TAX_PER_PACKAGE } from '@/lib/billing/helpers';
 
 export function PricingCard({ pkg, onAddToCart, detailHref, showRenewal = true }) {
   return (
@@ -136,7 +136,7 @@ export function StreamingPricingCard({ pkg, onAddToCart }) {
         <span className="text-neutral-400 text-sm">/mo</span>
       </div>
       <p className="text-neutral-500 text-xs mb-4">
-        Tax included · Renews at {formatCurrency(pkg.renewalPrice)}/mo
+        + {formatCurrency(CHECKOUT_TAX_PER_PACKAGE)} tax at checkout · Renews at {formatCurrency(pkg.renewalPrice)}/mo
       </p>
 
       <div className="space-y-2 mb-6 text-sm">

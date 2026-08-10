@@ -23,7 +23,7 @@ export const STREAMING_PAYG_RATES = {
   storageGb: 0.05,
 };
 
-/** Prices are USD per month, tax included (all-in pricing). */
+/** Prices are USD per month; $3.50/package tax added at checkout. */
 export const STREAMING_PACKAGES = [
   {
     id: 'stream-starter',
@@ -32,7 +32,7 @@ export const STREAMING_PACKAGES = [
     type: 'live_streaming',
     monthlyPrice: 165,
     renewalPrice: 165,
-    taxIncluded: true,
+    taxIncluded: false,
     maxListeners: 500,
     maxStreams: 1,
     bandwidth: '2 TB/mo',
@@ -56,7 +56,7 @@ export const STREAMING_PACKAGES = [
     type: 'live_streaming',
     monthlyPrice: 299,
     renewalPrice: 299,
-    taxIncluded: true,
+    taxIncluded: false,
     maxListeners: 2000,
     maxStreams: 3,
     bandwidth: '5 TB/mo',
@@ -80,7 +80,7 @@ export const STREAMING_PACKAGES = [
     type: 'live_streaming',
     monthlyPrice: 499,
     renewalPrice: 499,
-    taxIncluded: true,
+    taxIncluded: false,
     maxListeners: 10000,
     maxStreams: 10,
     bandwidth: '15 TB/mo',

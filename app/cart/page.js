@@ -4,7 +4,7 @@ import Link from 'next/link';
 import PublicLayout from '@/components/layout/PublicLayout';
 import { Button, Card, PageHeader, EmptyState, LoadingSpinner, Select } from '@/components/ui';
 import { useCart } from '@/contexts/CartContext';
-import { formatCurrency } from '@/lib/billing/helpers';
+import { formatCurrency, CHECKOUT_TAX_PER_PACKAGE } from '@/lib/billing/helpers';
 import { BILLING_CYCLES } from '@/data/constants';
 
 export default function CartPage() {
@@ -111,7 +111,7 @@ export default function CartPage() {
               </div>
               <div className="space-y-2 text-sm mb-6">
                 <div className="flex justify-between"><span className="text-neutral-400">Subtotal</span><span className="text-white">{formatCurrency(subtotal)}</span></div>
-                <div className="flex justify-between"><span className="text-neutral-400">Tax</span><span className="text-white">{formatCurrency(tax)}</span></div>
+                <div className="flex justify-between"><span className="text-neutral-400">Tax ({formatCurrency(CHECKOUT_TAX_PER_PACKAGE)}/package)</span><span className="text-white">{formatCurrency(tax)}</span></div>
                 {discount > 0 && <div className="flex justify-between"><span className="text-neutral-400">Discount</span><span className="text-white">−{formatCurrency(discount)}</span></div>}
                 <div className="flex justify-between pt-2 border-t border-neutral-800 font-semibold">
                   <span className="text-white">Total</span><span className="text-white">{formatCurrency(total)}</span>

@@ -9,7 +9,7 @@ import { Button, Input, Card, Select, LoadingSpinner } from '@/components/ui';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCart } from '@/contexts/CartContext';
 import { processCheckoutPayment } from '@/lib/firebase/firestore';
-import { formatCurrency } from '@/lib/billing/helpers';
+import { formatCurrency, CHECKOUT_TAX_PER_PACKAGE } from '@/lib/billing/helpers';
 import { isPaymentTestMode } from '@/data/countries';
 import { auth } from '@/lib/firebase/config';
 import { OS_OPTIONS, SERVER_LOCATIONS } from '@/data/constants';
@@ -377,7 +377,6 @@ export default function CheckoutPage() {
                   </span>
                   <span className="text-white">
                     {formatCurrency(item.price * (item.quantity || 1))}
-                    {item.taxIncluded && <span className="text-neutral-500 text-xs block">tax incl.</span>}
                   </span>
                 </div>
               ))}
@@ -387,15 +386,10 @@ export default function CheckoutPage() {
                 <span className="text-neutral-400">Subtotal</span>
                 <span className="text-white">{formatCurrency(subtotal)}</span>
               </div>
-              {tax > 0 && (
-                <div className="flex justify-between">
-                  <span className="text-neutral-400">Tax</span>
-                  <span className="text-white">{formatCurrency(tax)}</span>
-                </div>
-              )}
-              {streamingOrder && (
-                <p className="text-xs text-neutral-500">Streaming packages include tax in the listed price.</p>
-              )}
+              <div className="flex justify-between">
+                <span className="text-neutral-400">Tax ({formatCurrency(CHECKOUT_TAX_PER_PACKAGE)}/package)</span>
+                <span className="text-white">{formatCurrency(tax)}</span>
+              </div>
               {discount > 0 && (
                 <div className="flex justify-between">
                   <span className="text-neutral-400">Discount</span>
