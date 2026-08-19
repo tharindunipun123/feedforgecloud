@@ -14,7 +14,7 @@ import { isPaymentTestMode } from '@/data/countries';
 import { auth } from '@/lib/firebase/config';
 import { OS_OPTIONS, SERVER_LOCATIONS } from '@/data/constants';
 import { STREAMING_REGIONS } from '@/data/streaming';
-import { hasStreamingInCart } from '@/lib/cart/helpers';
+import { hasStreamingInCart, hasSslInCart, isAnnualOnlyItem } from '@/lib/cart/helpers';
 import {
   COUNTRIES,
   getCountryName,
@@ -44,6 +44,7 @@ export default function CheckoutPage() {
   });
 
   const streamingOrder = hasStreamingInCart(items);
+  const sslOrder = hasSslInCart(items);
   const paymentGateway = customer.countryCode
     ? getPaymentGatewayForCountry(customer.countryCode)
     : null;
@@ -97,6 +98,10 @@ export default function CheckoutPage() {
       }
       return base;
     }
+    if (step === 2) {
+      const sslItems = items.filter((i) => i.type === 'ssl_certificate');
+      if (sslItems.some((i) => !i.config?.domain?.trim())) return false;
+    }
     return true;
   };
 
@@ -113,7 +118,7 @@ export default function CheckoutPage() {
         tax,
         discount,
         total,
-        billingCycle,
+        billingCycle: sslOrder ? 'annual' : billingCycle,
         currency: 'USD',
         customer: {
           ...customer,
@@ -355,6 +360,33 @@ export default function CheckoutPage() {
                     </div>
                   </div>
                 )}
+                {item.type === 'ssl_certificate' && (
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <Input
+                      label="Primary domain"
+                      placeholder="example.com or *.example.com"
+                      value={item.config?.domain || ''}
+                      onChange={(e) =>
+                        updateItem(item.id, { config: { ...item.config, domain: e.target.value } })
+                      }
+                      required
+                      className="sm:col-span-2"
+                    />
+                    <Input
+                      label="Additional domains (optional)"
+                      placeholder="www.example.com, api.example.com"
+                      value={item.config?.additionalDomains || ''}
+                      onChange={(e) =>
+                        updateItem(item.id, { config: { ...item.config, additionalDomains: e.target.value } })
+                      }
+                      className="sm:col-span-2"
+                    />
+                    <div className="sm:col-span-2 bg-neutral-900 border border-neutral-800 rounded-lg p-3 text-xs text-neutral-400">
+                      <span className="text-emerald-400">Annual billing only</span> — {formatCurrency(item.price)}/year + {formatCurrency(CHECKOUT_TAX_PER_PACKAGE)} tax.
+                      Certificate enters <span className="text-yellow-400">pending provisioning</span> until issued.
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
           </Card>
@@ -377,6 +409,9 @@ export default function CheckoutPage() {
                   </span>
                   <span className="text-white">
                     {formatCurrency(item.price * (item.quantity || 1))}
+                    {isAnnualOnlyItem(item) && (
+                      <span className="text-neutral-500 text-xs block">/year · annual only</span>
+                    )}
                   </span>
                 </div>
               ))}

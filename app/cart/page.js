@@ -6,6 +6,7 @@ import { Button, Card, PageHeader, EmptyState, LoadingSpinner, Select } from '@/
 import { useCart } from '@/contexts/CartContext';
 import { formatCurrency, CHECKOUT_TAX_PER_PACKAGE } from '@/lib/billing/helpers';
 import { BILLING_CYCLES } from '@/data/constants';
+import { getItemLinePrice, isAnnualOnlyItem } from '@/lib/cart/helpers';
 
 export default function CartPage() {
   const {
@@ -38,13 +39,15 @@ export default function CartPage() {
         <div className="max-w-3xl mx-auto px-4 py-16">
           <EmptyState
             title="Your cart is empty"
-            description="Browse our EC2 plans and services to get started."
-            action={<Link href="/ec2-pricing"><Button>Browse EC2 plans</Button></Link>}
+            description="Browse our plans and services to get started."
+            action={<Link href="/ssl-certificates-pricing"><Button>Browse plans</Button></Link>}
           />
         </div>
       </PublicLayout>
     );
   }
+
+  const showBillingCycle = items.some((i) => !isAnnualOnlyItem(i) && i.type !== 'payg');
 
   return (
     <PublicLayout>
@@ -60,9 +63,11 @@ export default function CartPage() {
                     <p className="text-sm text-neutral-400 mt-1 capitalize">{item.type.replace('-', ' ')}</p>
                     {item.config && (
                       <div className="mt-2 text-xs text-neutral-500 space-y-0.5">
+                        {item.config.domain && <p>Domain: {item.config.domain}</p>}
                         {item.config.os && <p>OS: {item.config.os}</p>}
                         {item.config.location && <p>Location: {item.config.location}</p>}
                         {item.config.vcpu && <p>{item.config.vcpu} vCPU · {item.config.ram} GB RAM</p>}
+                        {isAnnualOnlyItem(item) && <p className="text-emerald-500">Annual billing only</p>}
                       </div>
                     )}
                   </div>
@@ -80,7 +85,10 @@ export default function CartPage() {
                         >+</button>
                       </div>
                     )}
-                    <span className="text-white font-semibold">{formatCurrency(item.price * (item.quantity || 1))}</span>
+                    <span className="text-white font-semibold">
+                      {formatCurrency(getItemLinePrice(item, billingCycle))}
+                      {isAnnualOnlyItem(item) && <span className="text-neutral-500 text-xs block">/year</span>}
+                    </span>
                     <button onClick={() => removeItem(item.id)} className="text-neutral-500 hover:text-white text-sm">Remove</button>
                   </div>
                 </div>
@@ -91,7 +99,7 @@ export default function CartPage() {
           <div>
             <Card className="sticky top-8">
               <h2 className="text-lg font-semibold text-white mb-4">Order summary</h2>
-              {items.every((i) => i.type !== 'payg') && (
+              {showBillingCycle && (
                 <Select
                   label="Billing cycle"
                   value={billingCycle}

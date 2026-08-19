@@ -176,7 +176,11 @@ function OverviewTab({ service, invoices }) {
       {showCreds && (
         <Card>
           <h3 className="text-white font-semibold mb-4">
-            {service.type === 'live_streaming' ? 'Streaming Credentials' : 'Access Credentials'}
+            {service.type === 'live_streaming'
+              ? 'Streaming Credentials'
+              : service.type === 'ssl_certificate'
+                ? 'SSL Certificate'
+                : 'Access Credentials'}
           </h3>
           <div className="grid sm:grid-cols-2 gap-4 text-sm font-mono">
             {service.type === 'live_streaming' ? (
@@ -189,6 +193,25 @@ function OverviewTab({ service, invoices }) {
                   ['Admin Password', creds.adminPassword],
                   ['Server IP', creds.serverIp],
                   ['Region', creds.region],
+                ].filter(([, v]) => v).map(([k, v]) => (
+                  <div key={k} className="bg-black border border-neutral-800 rounded-lg px-3 py-2.5">
+                    <p className="text-neutral-500 text-xs mb-1">{k}</p>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-white text-sm truncate">{v}</span>
+                      <CopyButton value={v} />
+                    </div>
+                  </div>
+                ))}
+              </>
+            ) : service.type === 'ssl_certificate' ? (
+              <>
+                {[
+                  ['Domain', creds.domain],
+                  ['Certificate URL', creds.certificateUrl],
+                  ['Private Key URL', creds.privateKeyUrl],
+                  ['CA Bundle URL', creds.caBundleUrl],
+                  ['Issued', creds.issuedAt],
+                  ['Expires', creds.expiresAt],
                 ].filter(([, v]) => v).map(([k, v]) => (
                   <div key={k} className="bg-black border border-neutral-800 rounded-lg px-3 py-2.5">
                     <p className="text-neutral-500 text-xs mb-1">{k}</p>

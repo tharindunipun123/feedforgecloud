@@ -241,6 +241,7 @@ export const NAV_SUPPORT = [
 
 export const NAV_PRICING = [
   { href: '/live-streaming-pricing', label: 'Live Streaming Pricing' },
+  { href: '/ssl-certificates-pricing', label: 'SSL Certificate Pricing' },
   { href: '/ec2-pricing', label: 'EC2 Pricing' },
   { href: '/cdn-pricing', label: 'CDN Pricing' },
   { href: '/pay-as-you-go', label: 'Pay-as-you-go EC2' },

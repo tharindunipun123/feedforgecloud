@@ -14,6 +14,7 @@ const adminNav = [
   { href: '/admin/services', label: 'Services' },
   { href: '/admin/ec2-provisioning', label: 'EC2 Provisioning' },
   { href: '/admin/streaming-provisioning', label: 'Streaming Provisioning' },
+  { href: '/admin/ssl-provisioning', label: 'SSL Provisioning' },
   { href: '/admin/n8n-provisioning', label: 'n8n Provisioning' },
   { href: '/admin/ai-website', label: 'AI Website Orders' },
   { href: '/admin/ai-chatbot', label: 'AI Chatbot Orders' },
