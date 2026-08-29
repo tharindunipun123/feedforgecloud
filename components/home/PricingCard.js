@@ -205,7 +205,7 @@ export function SslPricingCard({ pkg, onAddToCart }) {
         <span className="text-neutral-400 text-sm">/year</span>
       </div>
       <p className="text-neutral-500 text-xs mb-4">
-        + {formatCurrency(CHECKOUT_TAX_PER_PACKAGE)} tax at checkout · {formatCurrency(totalWithTax)} total first year
+        + {formatCurrency(CHECKOUT_TAX_PER_PACKAGE)} tax · Temp SSL included · {formatCurrency(totalWithTax)}/yr total
       </p>
 
       <div className="space-y-2 mb-6 text-sm">
@@ -218,8 +218,8 @@ export function SslPricingCard({ pkg, onAddToCart }) {
           <span className="text-white">{pkg.domains}</span>
         </div>
         <div className="flex justify-between py-2">
-          <span className="text-neutral-400">Validity</span>
-          <span className="text-white">1 year</span>
+          <span className="text-neutral-400">Temp SSL</span>
+          <span className="text-emerald-400 text-xs">Included free</span>
         </div>
       </div>
 

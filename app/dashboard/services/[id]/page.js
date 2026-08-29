@@ -122,7 +122,8 @@ function UsageBar({ label, value, color = 'bg-white', suffix = '%' }) {
 function OverviewTab({ service, invoices }) {
   const timeline = generateBillingTimeline(service);
   const creds = service.credentials;
-  const showCreds = service.status === 'active' && creds;
+  const showCreds =
+    (service.status === 'active' || service.status === 'temp_ssl_active') && creds;
 
   return (
     <div className="space-y-6">
@@ -130,8 +131,26 @@ function OverviewTab({ service, invoices }) {
         <div className="bg-yellow-950/40 border border-yellow-800/40 rounded-xl px-5 py-4 flex gap-3 items-start">
           <span className="text-yellow-400 text-lg mt-0.5">⏳</span>
           <div>
-            <p className="text-yellow-300 font-medium text-sm">Provisioning in progress</p>
-            <p className="text-yellow-500/80 text-xs mt-0.5">Your service is being set up. This usually takes 10–15 minutes. Credentials will appear here once ready.</p>
+            <p className="text-yellow-300 font-medium text-sm">
+              {service.type === 'ssl_certificate' ? 'Installing temporary SSL' : 'Provisioning in progress'}
+            </p>
+            <p className="text-yellow-500/80 text-xs mt-0.5">
+              {service.type === 'ssl_certificate'
+                ? 'A free temporary SSL certificate is being installed on your domain (usually within 15 minutes). HTTPS will work while your annual certificate is issued.'
+                : 'Your service is being set up. This usually takes 10–15 minutes. Credentials will appear here once ready.'}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {service.status === 'temp_ssl_active' && service.type === 'ssl_certificate' && (
+        <div className="bg-emerald-950/40 border border-emerald-800/40 rounded-xl px-5 py-4 flex gap-3 items-start">
+          <span className="text-emerald-400 text-lg mt-0.5">🔒</span>
+          <div>
+            <p className="text-emerald-300 font-medium text-sm">Temporary SSL is active</p>
+            <p className="text-emerald-500/80 text-xs mt-0.5">
+              Your site is secured with a temporary certificate. Your annual SSL certificate is being finalized — details appear below.
+            </p>
           </div>
         </div>
       )}
@@ -205,6 +224,23 @@ function OverviewTab({ service, invoices }) {
               </>
             ) : service.type === 'ssl_certificate' ? (
               <>
+                {creds.tempSsl && (
+                  <div className="sm:col-span-2 bg-emerald-950/30 border border-emerald-900/40 rounded-lg p-4 mb-2">
+                    <p className="text-emerald-300 text-sm font-medium mb-2">Temporary SSL (active)</p>
+                    <div className="grid sm:grid-cols-2 gap-3">
+                      {[
+                        ['Temp Certificate URL', creds.tempSsl.certificateUrl],
+                        ['Temp Expires', creds.tempSsl.expiresAt],
+                        ['Provider', creds.tempSsl.provider || 'Let\'s Encrypt'],
+                      ].filter(([, v]) => v).map(([k, v]) => (
+                        <div key={k} className="bg-black border border-neutral-800 rounded-lg px-3 py-2.5">
+                          <p className="text-neutral-500 text-xs mb-1">{k}</p>
+                          <span className="text-white text-sm truncate block">{v}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 {[
                   ['Domain', creds.domain],
                   ['Certificate URL', creds.certificateUrl],

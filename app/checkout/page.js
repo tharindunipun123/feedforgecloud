@@ -382,8 +382,15 @@ export default function CheckoutPage() {
                       className="sm:col-span-2"
                     />
                     <div className="sm:col-span-2 bg-neutral-900 border border-neutral-800 rounded-lg p-3 text-xs text-neutral-400">
+                      <span className="text-emerald-400">Temporary SSL included</span> — installed within 15 minutes after payment.
+                      <br />
                       <span className="text-emerald-400">Annual billing only</span> — {formatCurrency(item.price)}/year + {formatCurrency(CHECKOUT_TAX_PER_PACKAGE)} tax.
-                      Certificate enters <span className="text-yellow-400">pending provisioning</span> until issued.
+                      {item.config?.includesCdn && (
+                        <>
+                          <br />
+                          Includes Super Fast CDN edge delivery + SSL on all endpoints.
+                        </>
+                      )}
                     </div>
                   </div>
                 )}

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import PublicLayout from '@/components/layout/PublicLayout';
 import { SslPricingCard } from '@/components/home/PricingCard';
 import { PageHeader, Button } from '@/components/ui';
-import { SSL_PACKAGES } from '@/data/ssl-certificates';
+import { SSL_PACKAGES, TEMP_SSL_INFO } from '@/data/ssl-certificates';
 import { CHECKOUT_TAX_PER_PACKAGE, formatCurrency } from '@/lib/billing/helpers';
 import { useCart } from '@/contexts/CartContext';
 import { createSslCartItem } from '@/lib/cart/helpers';
@@ -24,16 +24,16 @@ export default function SslCertificatesPricingPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <PageHeader
           title="SSL Certificate Pricing"
-          description="Annual billing only. All prices in USD per year plus $3.50 tax at checkout."
+          description="Annual billing only — $49, $60, and $210/year plans plus $3.50 tax at checkout."
         />
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12 max-w-4xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
           {SSL_PACKAGES.map((pkg) => (
             <SslPricingCard key={pkg.id} pkg={pkg} onAddToCart={handleAdd} />
           ))}
         </div>
 
-        <div className="bg-neutral-950 border border-neutral-800 rounded-2xl p-8 max-w-3xl mx-auto">
+        <div className="bg-neutral-950 border border-neutral-800 rounded-2xl p-8 max-w-3xl mx-auto mb-8">
           <h2 className="text-lg font-semibold text-white mb-4">Checkout totals (first year)</h2>
           <div className="space-y-3 text-sm">
             {SSL_PACKAGES.map((pkg) => (
@@ -46,9 +46,15 @@ export default function SslCertificatesPricingPage() {
               </div>
             ))}
           </div>
-          <p className="text-xs text-neutral-500 mt-4">
-            SSL certificates are billed annually only. Renewal is due after 1 year at the same plan rate plus checkout tax.
-          </p>
+        </div>
+
+        <div className="bg-neutral-950 border border-emerald-900/30 rounded-2xl p-6 max-w-3xl mx-auto">
+          <h3 className="text-white font-medium mb-2">Order flow</h3>
+          <ol className="text-sm text-neutral-400 space-y-2 list-decimal list-inside">
+            <li>Pay via Stripe — {formatCurrency(CHECKOUT_TAX_PER_PACKAGE)} tax per package added at checkout</li>
+            <li>{TEMP_SSL_INFO.description}</li>
+            <li>Annual certificate issued and activated (CDN enabled automatically on the $210 bundle)</li>
+          </ol>
         </div>
 
         <div className="text-center mt-8">

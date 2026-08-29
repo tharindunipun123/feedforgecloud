@@ -148,6 +148,7 @@ export function StatusBadge({ status }) {
   const statusMap = {
     active: 'success',
     provisioning: 'warning',
+    temp_ssl_active: 'success',
     suspended: 'danger',
     cancelled: 'danger',
     pending_payment: 'warning',
