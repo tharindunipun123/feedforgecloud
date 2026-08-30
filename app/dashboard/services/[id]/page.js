@@ -132,12 +132,12 @@ function OverviewTab({ service, invoices }) {
           <span className="text-yellow-400 text-lg mt-0.5">⏳</span>
           <div>
             <p className="text-yellow-300 font-medium text-sm">
-              {service.type === 'ssl_certificate' ? 'Installing temporary SSL' : 'Provisioning in progress'}
+              {service.type === 'ssl_certificate' ? 'Pending — installing temporary SSL' : 'Pending activation'}
             </p>
             <p className="text-yellow-500/80 text-xs mt-0.5">
               {service.type === 'ssl_certificate'
-                ? 'A free temporary SSL certificate is being installed on your domain (usually within 15 minutes). HTTPS will work while your annual certificate is issued.'
-                : 'Your service is being set up. This usually takes 10–15 minutes. Credentials will appear here once ready.'}
+                ? 'Payment confirmed. A free temporary SSL certificate is being installed on your domain (usually within 15 minutes).'
+                : 'Payment confirmed. Your service is being set up — this usually takes 10–15 minutes. Credentials will appear here once ready.'}
             </p>
           </div>
         </div>

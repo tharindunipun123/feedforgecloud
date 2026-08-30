@@ -50,6 +50,7 @@ export default function StreamingProvisioningPage() {
           credentials: creds,
           config: { ...(svc?.config || {}), region: creds.region },
           status: 'active',
+          billingStatus: 'active',
           activatedAt: serverTimestamp(),
           onDemandUsage: svc?.config?.payAsYouGo
             ? { ...(svc?.onDemandUsage || {}), enabled: true, enabledAt: serverTimestamp(), enabledBy: 'checkout' }

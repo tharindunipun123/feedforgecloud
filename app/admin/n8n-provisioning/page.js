@@ -25,7 +25,12 @@ export default function N8nProvisioningPage() {
     if (!selected) return;
     setSaving(true);
     try {
-      await updateService(selected, { credentials: creds, status: 'active', activatedAt: serverTimestamp() }, user.uid);
+      await updateService(selected, {
+        credentials: creds,
+        status: 'active',
+        billingStatus: 'active',
+        activatedAt: serverTimestamp(),
+      }, user.uid);
       setServices((prev) => prev.filter((s) => s.id !== selected));
       setSelected('');
     } finally {

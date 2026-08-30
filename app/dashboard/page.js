@@ -10,7 +10,7 @@ import {
   getUserInvoices,
   getUserTickets,
 } from '@/lib/firebase/firestore';
-import { formatCurrency, formatBillingDate, isPastDue } from '@/lib/billing/helpers';
+import { formatCurrency, formatBillingDate } from '@/lib/billing/helpers';
 import { hasServerAccess } from '@/lib/monitoring/helpers';
 import { auth } from '@/lib/firebase/config';
 
@@ -184,9 +184,11 @@ export default function DashboardOverviewPage() {
 
   const ec2Metrics = useMemo(() => buildEc2Metrics(services, liveStats), [services, liveStats]);
   const activeServices = services.filter((s) => s.status === 'active');
+  const pendingServices = services.filter(
+    (s) => s.status === 'provisioning' || s.status === 'temp_ssl_active'
+  );
   const ec2Services = services.filter((s) => s.type === 'ec2' || s.type === 'vps');
   const unpaidInvoices = invoices.filter((i) => i.status === 'unpaid');
-  const overdueInvoices = invoices.filter((i) => isPastDue(i.dueDate, i.status));
 
   if (loading) {
     return <div className="flex justify-center py-24"><LoadingSpinner size="lg" /></div>;
@@ -201,9 +203,9 @@ export default function DashboardOverviewPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         {[
           { label: 'Active Services', value: activeServices.length, href: '/dashboard/services', icon: '✅' },
+          { label: 'Pending Activation', value: pendingServices.length, href: '/dashboard/services', icon: '⏳' },
           { label: 'EC2 Instances', value: ec2Services.length, href: '/dashboard/services/ec2', icon: '⚡' },
           { label: 'Unpaid Invoices', value: unpaidInvoices.length, href: '/dashboard/invoices', icon: '💳' },
-          { label: 'Overdue', value: overdueInvoices.length, href: '/dashboard/invoices', icon: overdueInvoices.length > 0 ? '⚠️' : '✓' },
         ].map((stat) => (
           <Link key={stat.label} href={stat.href}>
             <Card hover className="text-center !p-5">
@@ -250,12 +252,12 @@ export default function DashboardOverviewPage() {
           {services.length === 0 ? (
             <EmptyState
               title="No services yet"
-              description="Order an EC2 instance or service to get started."
+              description="After payment, services appear here as pending until activated."
               action={<Link href="/ec2-pricing"><Button size="sm">Browse plans</Button></Link>}
             />
           ) : (
             <ul className="space-y-2">
-              {services.slice(0, 6).map((s) => (
+              {[...pendingServices, ...activeServices].slice(0, 6).map((s) => (
                 <li key={s.id} className="flex justify-between items-center py-2 border-b border-neutral-800 last:border-0">
                   <Link href={`/dashboard/services/${s.id}`} className="text-white hover:underline text-sm">{s.name}</Link>
                   <StatusBadge status={s.status} />

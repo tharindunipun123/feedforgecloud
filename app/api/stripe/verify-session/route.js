@@ -6,15 +6,6 @@ import { getAdminDb } from '@/lib/firebase/admin';
 
 export async function POST(request) {
   try {
-    const authResult = await verifyAuthToken(request);
-    if (!authResult.ok) {
-      return NextResponse.json(
-        { error: authResult.message, code: authResult.code },
-        { status: authResult.code === 'admin_not_configured' ? 503 : 401 }
-      );
-    }
-    const decoded = authResult.decoded;
-
     const { sessionId, orderId } = await request.json();
     if (!sessionId) {
       return NextResponse.json({ error: 'sessionId is required.' }, { status: 400 });
@@ -22,18 +13,37 @@ export async function POST(request) {
 
     const stripe = getStripe();
     const session = await stripe.checkout.sessions.retrieve(sessionId);
-
-    if (session.metadata?.userId !== decoded.uid) {
-      return NextResponse.json({ error: 'Session does not belong to this user.' }, { status: 403 });
-    }
-
     const resolvedOrderId = orderId || session.metadata?.orderId || session.client_reference_id;
 
+    if (!resolvedOrderId) {
+      return NextResponse.json({ error: 'Could not resolve order from Stripe session.' }, { status: 400 });
+    }
+
+    if (session.metadata?.orderId && session.metadata.orderId !== resolvedOrderId) {
+      return NextResponse.json({ error: 'Order ID does not match Stripe session.' }, { status: 400 });
+    }
+
+    const authHeader = request.headers.get('Authorization');
+    if (authHeader?.startsWith('Bearer ')) {
+      const authResult = await verifyAuthToken(request);
+      if (authResult.ok && session.metadata?.userId && session.metadata.userId !== authResult.decoded.uid) {
+        return NextResponse.json({ error: 'Session does not belong to this user.' }, { status: 403 });
+      }
+    }
+
     const db = getAdminDb();
-    if (db && resolvedOrderId) {
+    if (db) {
       const orderSnap = await db.collection('orders').doc(resolvedOrderId).get();
       if (orderSnap.exists && orderSnap.data().status === 'payment_confirmed') {
-        return NextResponse.json({ confirmed: true, orderId: resolvedOrderId, alreadyConfirmed: true });
+        const servicesSnap = await db.collection('services').where('orderId', '==', resolvedOrderId).get();
+        if (!servicesSnap.empty) {
+          return NextResponse.json({
+            confirmed: true,
+            orderId: resolvedOrderId,
+            alreadyConfirmed: true,
+            serviceIds: servicesSnap.docs.map((d) => d.id),
+          });
+        }
       }
     }
 

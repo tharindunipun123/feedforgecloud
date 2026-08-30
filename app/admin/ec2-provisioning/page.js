@@ -31,6 +31,7 @@ export default function Ec2ProvisioningPage() {
       await updateService(selected, {
         credentials: creds,
         status: 'active',
+        billingStatus: 'active',
         activatedAt: serverTimestamp(),
       }, user.uid);
       setServices((prev) => prev.filter((s) => s.id !== selected));

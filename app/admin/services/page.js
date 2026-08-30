@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { PageHeader, Card, LoadingSpinner, StatusBadge, Button } from '@/components/ui';
 import { getAllServices, updateService } from '@/lib/firebase/firestore';
 import { useAuth } from '@/contexts/AuthContext';
-import { formatBillingDate } from '@/lib/billing/helpers';
+import { serverTimestamp } from 'firebase/firestore';
 
 export default function AdminServicesPage() {
   const { user } = useAuth();
@@ -15,8 +15,30 @@ export default function AdminServicesPage() {
   const load = () => getAllServices().then(setServices).finally(() => setLoading(false));
   useEffect(load, []);
 
+  const activateService = async (service) => {
+    await updateService(
+      service.id,
+      {
+        status: 'active',
+        billingStatus: 'active',
+        activatedAt: serverTimestamp(),
+      },
+      user.uid
+    );
+
+    if (service.type === 'cdn_hosting' && !service.cdnSubscriptionId) {
+      const { createCdnSubscription } = await import('@/lib/firebase/cdn');
+      await createCdnSubscription(service.userId, service.id, service.orderId, service.packageId);
+    }
+
+    load();
+  };
+
   const updateStatus = async (id, status) => {
-    await updateService(id, { status }, user.uid);
+    const patch = { status };
+    if (status === 'active') patch.billingStatus = 'active';
+    if (status === 'cancelled' || status === 'suspended') patch.billingStatus = status;
+    await updateService(id, patch, user.uid);
     load();
   };
 
@@ -45,7 +67,7 @@ export default function AdminServicesPage() {
                 <td className="py-3 pr-4 text-neutral-400">{s.userId?.slice(0, 8)}...</td>
                 <td className="py-3 flex flex-wrap gap-2">
                   {s.status === 'provisioning' && (
-                    <Button size="sm" onClick={() => updateStatus(s.id, 'active')}>Mark active</Button>
+                    <Button size="sm" onClick={() => activateService(s)}>Mark active</Button>
                   )}
                   {s.status === 'active' && (
                     <Button size="sm" variant="secondary" onClick={() => updateStatus(s.id, 'suspended')}>Suspend</Button>

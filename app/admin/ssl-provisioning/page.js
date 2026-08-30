@@ -115,6 +115,7 @@ export default function SslProvisioningPage() {
           notes: finalCreds.notes,
         },
         status: 'active',
+        billingStatus: 'active',
         activatedAt: serverTimestamp(),
         config: {
           ...(selectedService?.config || {}),

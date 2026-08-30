@@ -5,55 +5,68 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import PublicLayout from '@/components/layout/PublicLayout';
 import { Button, Card, LoadingSpinner } from '@/components/ui';
-import { auth } from '@/lib/firebase/config';
+import { useAuth } from '@/contexts/AuthContext';
 import { isPaymentTestMode } from '@/data/countries';
 
 function PaymentSuccessContent() {
   const searchParams = useSearchParams();
   const orderId = searchParams.get('orderId');
   const sessionId = searchParams.get('session_id');
+  const { user, loading: authLoading } = useAuth();
   const [verifying, setVerifying] = useState(!!sessionId && !isPaymentTestMode());
   const [error, setError] = useState('');
+  const [serviceCount, setServiceCount] = useState(0);
 
   useEffect(() => {
     if (!sessionId || isPaymentTestMode()) return;
+    if (authLoading) return;
 
-    async function verify() {
+    let cancelled = false;
+
+    async function verify(attempt = 0) {
       try {
-        const idToken = await auth.currentUser?.getIdToken();
-        if (!idToken) {
-          setVerifying(false);
-          return;
+        const headers = { 'Content-Type': 'application/json' };
+        if (user) {
+          const idToken = await user.getIdToken();
+          headers.Authorization = `Bearer ${idToken}`;
         }
 
         const res = await fetch('/api/stripe/verify-session', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${idToken}`,
-          },
+          headers,
           body: JSON.stringify({ sessionId, orderId }),
         });
 
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Payment verification failed.');
         if (!data.confirmed) throw new Error('Payment is still processing. Check your dashboard shortly.');
+
+        if (!cancelled) {
+          setServiceCount(Array.isArray(data.serviceIds) ? data.serviceIds.length : 0);
+        }
       } catch (err) {
-        setError(err.message);
+        if (attempt < 2 && !cancelled) {
+          await new Promise((r) => setTimeout(r, 1500));
+          return verify(attempt + 1);
+        }
+        if (!cancelled) setError(err.message);
       } finally {
-        setVerifying(false);
+        if (!cancelled) setVerifying(false);
       }
     }
 
     verify();
-  }, [sessionId, orderId]);
+    return () => {
+      cancelled = true;
+    };
+  }, [sessionId, orderId, user, authLoading]);
 
   if (verifying) {
     return (
       <PublicLayout>
         <div className="flex flex-col items-center justify-center py-24 gap-4">
           <LoadingSpinner size="lg" />
-          <p className="text-neutral-400 text-sm">Confirming your payment…</p>
+          <p className="text-neutral-400 text-sm">Confirming your payment and creating your services…</p>
         </div>
       </PublicLayout>
     );
@@ -73,7 +86,11 @@ function PaymentSuccessContent() {
             <p className="text-yellow-400 text-sm mb-3">{error}</p>
           ) : null}
           <p className="text-neutral-300 leading-relaxed">
-            Payment successful. Your order has been received. Our system is now provisioning your service. EC2 credentials or service setup details will be sent to your email and dashboard within a few minutes. EC2 provisioning usually takes 10–15 minutes.
+            Your payment was successful and your order has been received.
+            {serviceCount > 0
+              ? ` ${serviceCount} service${serviceCount === 1 ? '' : 's'} ${serviceCount === 1 ? 'is' : 'are'} now listed in your dashboard with a pending status while our team completes setup.`
+              : ' Your services will appear in your dashboard shortly with a pending status while our team completes setup.'}
+            {' '}Activation usually takes 10–15 minutes. Credentials will appear once ready.
           </p>
           {orderId && (
             <p className="text-sm text-neutral-500 mt-4">Order ID: {orderId}</p>

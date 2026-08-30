@@ -70,15 +70,27 @@ export async function POST(request) {
             .where('stripeSubscriptionId', '==', subscription.id)
             .get();
 
-          const billingStatus = subscription.status === 'active' ? 'active' : 'cancelled';
-          const serviceStatus = subscription.status === 'active' ? 'active' : 'suspended';
-
           for (const doc of servicesSnap.docs) {
-            await doc.ref.update({
-              billingStatus,
-              status: serviceStatus,
-              updatedAt: FieldValue.serverTimestamp(),
-            });
+            const service = doc.data();
+            const updates = { updatedAt: FieldValue.serverTimestamp() };
+
+            if (event.type === 'customer.subscription.deleted') {
+              updates.billingStatus = 'cancelled';
+              if (service.status === 'active') {
+                updates.status = 'suspended';
+              }
+            } else if (subscription.status === 'active') {
+              updates.billingStatus = service.status === 'provisioning' ? 'pending' : 'active';
+            } else if (subscription.status === 'canceled') {
+              updates.billingStatus = 'cancelled';
+              if (service.status === 'active') {
+                updates.status = 'suspended';
+              }
+            } else {
+              updates.billingStatus = 'pending';
+            }
+
+            await doc.ref.update(updates);
           }
         }
         break;

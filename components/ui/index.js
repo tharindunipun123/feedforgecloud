@@ -148,6 +148,7 @@ export function StatusBadge({ status }) {
   const statusMap = {
     active: 'success',
     provisioning: 'warning',
+    pending: 'warning',
     temp_ssl_active: 'success',
     suspended: 'danger',
     cancelled: 'danger',
@@ -162,7 +163,13 @@ export function StatusBadge({ status }) {
     resolved: 'success',
     closed: 'default',
   };
-  const label = (status || '').replace(/_/g, ' ');
+  const labelMap = {
+    provisioning: 'Pending activation',
+    pending_payment: 'Pending payment',
+    payment_confirmed: 'Payment confirmed',
+    temp_ssl_active: 'Temp SSL active',
+  };
+  const label = labelMap[status] || (status || '').replace(/_/g, ' ');
   return <Badge variant={statusMap[status] || 'default'}>{label}</Badge>;
 }
 
