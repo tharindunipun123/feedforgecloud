@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { PageHeader, Card, LoadingSpinner, Button, Input, Select, EmptyState } from '@/components/ui';
 import { getAllServices, updateService } from '@/lib/firebase/firestore';
 import { OS_OPTIONS, SERVER_LOCATIONS } from '@/data/constants';
+import { DEFAULT_SERVER_IP } from '@/lib/server/display';
 import { serverTimestamp } from 'firebase/firestore';
 
 export default function Ec2ProvisioningPage() {
@@ -14,7 +15,15 @@ export default function Ec2ProvisioningPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [creds, setCreds] = useState({
-    ip: '', username: 'root', password: '', sshPort: '22', os: OS_OPTIONS[0], location: SERVER_LOCATIONS[0].id, controlPanelUrl: '', notes: '',
+    ip: DEFAULT_SERVER_IP,
+    username: 'root',
+    password: '',
+    sshPort: '22',
+    vncPort: '5901',
+    os: OS_OPTIONS[0],
+    location: SERVER_LOCATIONS[0].id,
+    controlPanelUrl: '',
+    notes: '',
   });
 
   useEffect(() => {
@@ -28,15 +37,31 @@ export default function Ec2ProvisioningPage() {
     if (!selected) return;
     setSaving(true);
     try {
+      const svc = services.find((s) => s.id === selected);
       await updateService(selected, {
         credentials: creds,
+        config: {
+          ...(svc?.config || {}),
+          location: creds.location,
+          os: creds.os,
+        },
         status: 'active',
         billingStatus: 'active',
         activatedAt: serverTimestamp(),
       }, user.uid);
       setServices((prev) => prev.filter((s) => s.id !== selected));
       setSelected('');
-      setCreds({ ip: '', username: 'root', password: '', sshPort: '22', os: OS_OPTIONS[0], location: SERVER_LOCATIONS[0].id, controlPanelUrl: '', notes: '' });
+      setCreds({
+        ip: DEFAULT_SERVER_IP,
+        username: 'root',
+        password: '',
+        sshPort: '22',
+        vncPort: '5901',
+        os: OS_OPTIONS[0],
+        location: SERVER_LOCATIONS[0].id,
+        controlPanelUrl: '',
+        notes: '',
+      });
     } finally {
       setSaving(false);
     }
@@ -63,6 +88,7 @@ export default function Ec2ProvisioningPage() {
               <Input label="Username" value={creds.username} onChange={(e) => setCreds({ ...creds, username: e.target.value })} required />
               <Input label="Password" value={creds.password} onChange={(e) => setCreds({ ...creds, password: e.target.value })} required />
               <Input label="SSH port" value={creds.sshPort} onChange={(e) => setCreds({ ...creds, sshPort: e.target.value })} />
+              <Input label="VNC port" value={creds.vncPort} onChange={(e) => setCreds({ ...creds, vncPort: e.target.value })} />
               <Select label="OS" value={creds.os} onChange={(e) => setCreds({ ...creds, os: e.target.value })} options={OS_OPTIONS.map((o) => ({ value: o, label: o }))} />
               <Select label="Location" value={creds.location} onChange={(e) => setCreds({ ...creds, location: e.target.value })} options={SERVER_LOCATIONS.map((l) => ({ value: l.id, label: l.name }))} />
               <Input label="Control panel URL" value={creds.controlPanelUrl} onChange={(e) => setCreds({ ...creds, controlPanelUrl: e.target.value })} className="sm:col-span-2" />

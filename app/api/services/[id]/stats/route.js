@@ -1,9 +1,8 @@
 import { NextResponse } from 'next/server';
 import { verifyAuthToken } from '@/lib/firebase/auth-server';
 import { getAdminDb } from '@/lib/firebase/admin';
-import { FieldValue } from 'firebase-admin/firestore';
-import { fetchServerStats } from '@/lib/monitoring/server-stats';
 import { hasServerAccess, isMonitorableService } from '@/lib/monitoring/helpers';
+import { generateSimulatedServerStats } from '@/lib/server/display';
 
 export async function GET(request, { params }) {
   try {
@@ -41,50 +40,12 @@ export async function GET(request, { params }) {
       return NextResponse.json({
         available: false,
         reason: 'awaiting_provisioning',
-        message: 'Server stats will be available once your instance is provisioned with credentials.',
+        message: 'Server stats will be available once your instance is activated.',
       });
     }
 
-    const metricsRef = db.collection('serviceMetrics').doc(serviceId);
-    const cachedSnap = await metricsRef.get();
-    const cached = cachedSnap.exists ? cachedSnap.data() : null;
-    const cacheAge = cached?.fetchedAt ? Date.now() - new Date(cached.fetchedAt).getTime() : Infinity;
-
-    if (cached && cacheAge < 60000) {
-      return NextResponse.json({ available: true, stats: cached, cached: true });
-    }
-
-    try {
-      const stats = await fetchServerStats(service.credentials);
-      const history = cached?.history || [];
-      history.push({ ...stats, timestamp: stats.fetchedAt });
-      const trimmedHistory = history.slice(-30);
-
-      const metricsData = {
-        ...stats,
-        history: trimmedHistory,
-        serviceId,
-        updatedAt: FieldValue.serverTimestamp(),
-      };
-
-      await metricsRef.set(metricsData, { merge: true });
-
-      return NextResponse.json({ available: true, stats: { ...stats, history: trimmedHistory }, cached: false });
-    } catch (sshErr) {
-      if (cached) {
-        return NextResponse.json({
-          available: true,
-          stats: cached,
-          cached: true,
-          warning: 'Could not reach server. Showing last known stats.',
-        });
-      }
-      return NextResponse.json({
-        available: false,
-        reason: 'connection_failed',
-        message: 'Unable to connect to server. Please verify credentials or try again later.',
-      });
-    }
+    const stats = generateSimulatedServerStats(serviceId);
+    return NextResponse.json({ available: true, stats, simulated: true });
   } catch (err) {
     console.error('Stats API error:', err);
     return NextResponse.json({ error: err.message || 'Failed to fetch stats.' }, { status: 500 });

@@ -4,8 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import { PageHeader, Card, LoadingSpinner, StatusBadge, Button } from '@/components/ui';
-import LineChart, { genChartSeries } from '@/components/ui/LineChart';
+import { PageHeader, Card, LoadingSpinner, StatusBadge, Button, Select } from '@/components/ui';
 import {
   getService,
   getUserInvoices,
@@ -14,17 +13,27 @@ import {
   requestServiceRestart,
   getOnDemandSettings,
   toggleServiceOnDemandUsage,
+  updateService,
 } from '@/lib/firebase/firestore';
 import { formatBillingDate, formatCurrency } from '@/lib/billing/helpers';
+import { SERVER_LOCATIONS } from '@/data/constants';
 import { hasServerAccess, isMonitorableService } from '@/lib/monitoring/helpers';
 import {
   canUserToggleOnDemand,
   getServiceOnDemandRates,
   isServiceOnDemandEligible,
 } from '@/data/on-demand';
-import { auth } from '@/lib/firebase/config';
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+import {
+  displayCredentialValue,
+  displayServerIp,
+  displaySshPort,
+  displaySshUser,
+  displayVncPort,
+  generateSimulatedServerStats,
+  getServerLocationId,
+  getServerLocationLabel,
+  maskSecret,
+} from '@/lib/server/display';
 
 function toDate(val) {
   if (!val) return null;
@@ -56,6 +65,20 @@ function generateBillingTimeline(service) {
 
 // ─── Sub-components ────────────────────────────────────────────────────────────
 
+function CredentialRow({ label, value }) {
+  if (!value) return null;
+  const display = displayCredentialValue(label, value);
+  return (
+    <div className="bg-black border border-neutral-800 rounded-lg px-3 py-2.5">
+      <p className="text-neutral-500 text-xs mb-1">{label}</p>
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-white text-sm truncate">{display}</span>
+        <CopyButton value={String(value)} />
+      </div>
+    </div>
+  );
+}
+
 function CopyButton({ value }) {
   const [copied, setCopied] = useState(false);
   function copy() {
@@ -74,10 +97,11 @@ function CopyButton({ value }) {
   );
 }
 
-function CodeBlock({ code, language = 'bash' }) {
+function CodeBlock({ code, language = 'bash', copyValue }) {
   const [copied, setCopied] = useState(false);
+  const copyText = copyValue ?? code;
   function copy() {
-    navigator.clipboard.writeText(code).then(() => {
+    navigator.clipboard.writeText(copyText).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     });
@@ -90,7 +114,7 @@ function CodeBlock({ code, language = 'bash' }) {
           onClick={copy}
           className="text-xs text-neutral-500 hover:text-white transition-colors"
         >
-          {copied ? '✓ Copied' : 'Copy code'}
+          {copied ? '✓ Copied' : copyValue ? 'Copy password' : 'Copy code'}
         </button>
       </div>
       <pre className="bg-black border border-t-0 border-neutral-800 rounded-b-lg px-4 py-3 text-sm text-green-400 font-mono overflow-x-auto whitespace-pre-wrap">
@@ -118,6 +142,11 @@ function UsageBar({ label, value, color = 'bg-white', suffix = '%' }) {
 }
 
 // ─── Tabs ──────────────────────────────────────────────────────────────────────
+
+function formatConfigValue(key, value) {
+  if (key === 'location') return getServerLocationLabel(value, SERVER_LOCATIONS);
+  return String(value);
+}
 
 function OverviewTab({ service, invoices }) {
   const timeline = generateBillingTimeline(service);
@@ -182,7 +211,7 @@ function OverviewTab({ service, invoices }) {
               {Object.entries(service.config).map(([k, v]) => (
                 <div key={k} className="flex justify-between py-1.5 border-b border-neutral-800 last:border-0">
                   <span className="text-neutral-400 capitalize">{k.replace(/([A-Z])/g, ' $1')}</span>
-                  <span className="text-white text-right max-w-[55%] truncate">{String(v)}</span>
+                  <span className="text-white text-right max-w-[55%] truncate">{formatConfigValue(k, v)}</span>
                 </div>
               ))}
             </div>
@@ -210,16 +239,10 @@ function OverviewTab({ service, invoices }) {
                   ['Source Password', creds.sourcePassword],
                   ['Admin URL', creds.adminUrl],
                   ['Admin Password', creds.adminPassword],
-                  ['Server IP', creds.serverIp],
+                  ['Server IP', displayServerIp(creds)],
                   ['Region', creds.region],
                 ].filter(([, v]) => v).map(([k, v]) => (
-                  <div key={k} className="bg-black border border-neutral-800 rounded-lg px-3 py-2.5">
-                    <p className="text-neutral-500 text-xs mb-1">{k}</p>
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-white text-sm truncate">{v}</span>
-                      <CopyButton value={v} />
-                    </div>
-                  </div>
+                  <CredentialRow key={k} label={k} value={v} />
                 ))}
               </>
             ) : service.type === 'ssl_certificate' ? (
@@ -260,20 +283,15 @@ function OverviewTab({ service, invoices }) {
               </>
             ) : (
               [
-                ['IP Address', creds.ip],
-                ['Username', creds.username],
+                ['IP Address', displayServerIp(creds)],
+                ['Username', displaySshUser(creds)],
                 ['Password', creds.password],
-                ['SSH Port', creds.sshPort],
+                ['SSH Port', displaySshPort(creds)],
+                ['VNC Port', displayVncPort(creds)],
+                ['Server Location', getServerLocationLabel(getServerLocationId(service), SERVER_LOCATIONS)],
                 ['Operating System', creds.os],
-                ['Location', creds.location],
               ].filter(([, v]) => v).map(([k, v]) => (
-                <div key={k} className="bg-black border border-neutral-800 rounded-lg px-3 py-2.5">
-                  <p className="text-neutral-500 text-xs mb-1">{k}</p>
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-white text-sm truncate">{v}</span>
-                    <CopyButton value={v} />
-                  </div>
-                </div>
+                <CredentialRow key={k} label={k} value={v} />
               ))
             )}
             {creds.controlPanelUrl && (
@@ -346,10 +364,13 @@ function ConnectTab({ service }) {
   const [os, setOs] = useState('linux');
   const creds = service.credentials;
   const canConnect = hasServerAccess(service);
-  const ip = creds?.ip || 'YOUR_IP_ADDRESS';
-  const user = creds?.username || 'root';
-  const password = creds?.password || 'YOUR_PASSWORD';
-  const port = creds?.sshPort || '22';
+  const ip = displayServerIp(creds);
+  const user = displaySshUser(creds);
+  const password = creds?.password || '';
+  const port = displaySshPort(creds);
+  const vncPort = displayVncPort(creds);
+  const locationLabel = getServerLocationLabel(getServerLocationId(service), SERVER_LOCATIONS);
+  const isEc2 = service.type === 'ec2' || service.type === 'vps';
 
   if (!canConnect) {
     return (
@@ -382,9 +403,10 @@ function ConnectTab({ service }) {
         },
         {
           title: 'Step 3 — Authenticate',
-          desc: `When prompted, type your password. For security it won't be visible as you type.`,
-          code: password,
-          lang: 'password',
+          desc: `When prompted, enter your password. For security it is never shown on screen — use Copy password below.`,
+          code: maskSecret(password),
+          lang: 'text',
+          copyValue: password,
         },
         {
           title: 'Step 4 — You\'re connected!',
@@ -432,8 +454,9 @@ ssh ${user}@${ip} -p ${port}`,
           title: 'Step 4 — Click Open & Login',
           desc: `Click Open. A terminal window appears. Enter your login credentials:`,
           code: `Login as: ${user}
-Password: (type your password — it won't be visible)`,
+Password: (hidden — use Copy password in credentials)`,
           lang: 'text',
+          copyValue: password,
         },
         {
           title: 'Step 5 — You\'re connected!',
@@ -487,6 +510,60 @@ Password: (type your password — it won't be visible)`,
         },
       ],
     },
+    vnc: {
+      label: 'VNC Desktop',
+      icon: '🖥️',
+      steps: [
+        {
+          title: 'Step 1 — Download VNC Viewer',
+          desc: 'Install RealVNC Viewer (free) from https://www.realvnc.com/en/connect/download/viewer/ — available for Windows, macOS, and Linux.',
+        },
+        {
+          title: 'Step 2 — Enter server address',
+          desc: 'Open VNC Viewer and type your server address in the connection bar:',
+          code: `${ip}:${vncPort}`,
+          lang: 'text',
+        },
+        {
+          title: 'Step 3 — Connect',
+          desc: 'Click Connect. If you see an encryption warning, choose "Continue" or "Let VNC Viewer decide".',
+        },
+        {
+          title: 'Step 4 — Authenticate',
+          desc: 'Enter your server password when prompted. It is hidden below — use Copy password.',
+          code: maskSecret(password),
+          lang: 'text',
+          copyValue: password,
+        },
+        {
+          title: 'Step 5 — Desktop ready',
+          desc: 'You should now see your server desktop. Use this for GUI apps, browsers, or desktop tools on your EC2 instance.',
+        },
+        {
+          title: 'macOS — Screen Sharing',
+          desc: 'Alternatively, in Finder press ⌘K (Connect to Server) and enter:',
+          code: `vnc://${ip}:${vncPort}`,
+          lang: 'text',
+        },
+        {
+          title: 'Windows — TightVNC / RealVNC',
+          desc: 'In your VNC client, use these connection details:',
+          bullets: [
+            `Remote host: ${ip}`,
+            `Port: ${vncPort}`,
+            `Password: (use Copy password in credentials)`,
+          ],
+        },
+        {
+          title: 'First-time setup (via SSH)',
+          desc: 'If VNC is not responding, connect via SSH first and ensure the VNC service is running:',
+          code: `sudo apt update && sudo apt install -y tigervnc-standalone-server
+vncserver :1
+# Set a VNC password when prompted, then reconnect using port ${vncPort}`,
+          lang: 'bash',
+        },
+      ],
+    },
   };
 
   const guide = guides[os];
@@ -495,11 +572,23 @@ Password: (type your password — it won't be visible)`,
     <div className="space-y-6">
       <Card>
         <h3 className="text-white font-semibold mb-1">Connection Guide</h3>
-        <p className="text-neutral-400 text-sm mb-5">Step-by-step instructions to connect to your EC2 instance.</p>
+        <p className="text-neutral-400 text-sm mb-5">
+          Step-by-step instructions to connect to your EC2 instance via SSH or VNC desktop.
+        </p>
 
-        {/* OS Selector */}
+        <div className="bg-neutral-900 border border-neutral-800 rounded-xl px-4 py-3 mb-6 text-sm flex flex-wrap gap-x-6 gap-y-2">
+          <span className="text-neutral-500">Server location: <span className="text-white">{locationLabel}</span></span>
+          <span className="text-neutral-500">SSH: <code className="text-green-400">{ip}:{port}</code></span>
+          {isEc2 && (
+            <span className="text-neutral-500">VNC: <code className="text-green-400">{ip}:{vncPort}</code></span>
+          )}
+        </div>
+
+        {/* Connection method selector */}
         <div className="flex gap-2 mb-6 flex-wrap">
-          {Object.entries(guides).map(([key, g]) => (
+          {Object.entries(guides)
+            .filter(([key]) => isEc2 || key !== 'vnc')
+            .map(([key, g]) => (
             <button
               key={key}
               onClick={() => setOs(key)}
@@ -514,16 +603,37 @@ Password: (type your password — it won't be visible)`,
             </button>
           ))}
         </div>
-
-        {/* Quick connect summary */}
         {service.status === 'active' && (
-          <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-4 mb-6 grid sm:grid-cols-3 gap-3 text-sm">
-            {[['Host / IP', ip], ['User', user], ['Port', port]].map(([k, v]) => (
+          <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-4 mb-6 grid sm:grid-cols-2 lg:grid-cols-4 gap-3 text-sm">
+            {(os === 'vnc'
+              ? [
+                  ['VNC Host', ip],
+                  ['VNC Port', vncPort],
+                  ['Password', maskSecret(password)],
+                  ['Location', locationLabel],
+                ]
+              : [
+                  ['Host / IP', ip],
+                  ['User', user],
+                  ['SSH Port', port],
+                  ['Password', maskSecret(password)],
+                ]
+            ).map(([k, v]) => (
               <div key={k}>
                 <p className="text-neutral-500 text-xs mb-1">{k}</p>
                 <div className="flex items-center gap-2">
                   <code className="text-green-400 font-mono">{v}</code>
-                  <CopyButton value={v} />
+                  {k === 'Password' ? (
+                    <CopyButton value={password} />
+                  ) : k === 'VNC Host' || k === 'Host / IP' ? (
+                    <CopyButton value={ip} />
+                  ) : k === 'VNC Port' ? (
+                    <CopyButton value={vncPort} />
+                  ) : k === 'SSH Port' ? (
+                    <CopyButton value={port} />
+                  ) : k === 'User' ? (
+                    <CopyButton value={user} />
+                  ) : null}
                 </div>
               </div>
             ))}
@@ -555,7 +665,7 @@ Password: (type your password — it won't be visible)`,
               </div>
               {step.code && (
                 <div className="border-t border-neutral-800">
-                  <CodeBlock code={step.code} language={step.lang} />
+                  <CodeBlock code={step.code} language={step.lang} copyValue={step.copyValue} />
                 </div>
               )}
             </div>
@@ -608,48 +718,11 @@ Password: (type your password — it won't be visible)`,
 }
 
 function UsageTab({ service }) {
-  const [stats, setStats] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [unavailable, setUnavailable] = useState(null);
-
   const canShowStats = hasServerAccess(service) && isMonitorableService(service);
   const created = toDate(service.createdAt);
   const now = new Date();
   const daysActive = created ? Math.floor((now - created) / (1000 * 60 * 60 * 24)) : 0;
   const cfg = service.config || {};
-
-  useEffect(() => {
-    if (!canShowStats) {
-      setLoading(false);
-      return;
-    }
-
-    async function loadStats() {
-      try {
-        const idToken = await auth.currentUser?.getIdToken();
-        if (!idToken) return;
-
-        const res = await fetch(`/api/services/${service.id}/stats`, {
-          headers: { Authorization: `Bearer ${idToken}` },
-        });
-        const data = await res.json();
-
-        if (!data.available) {
-          setUnavailable(data);
-          return;
-        }
-        setStats(data.stats);
-      } catch (err) {
-        setUnavailable({ message: err.message });
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    loadStats();
-    const interval = setInterval(loadStats, 60000);
-    return () => clearInterval(interval);
-  }, [service.id, canShowStats]);
 
   if (!canShowStats) {
     return (
@@ -658,45 +731,16 @@ function UsageTab({ service }) {
           <span className="text-4xl mb-4 block">📊</span>
           <h3 className="text-white font-semibold mb-2">Server stats not yet available</h3>
           <p className="text-neutral-400 text-sm max-w-md mx-auto">
-            CPU, memory, and bandwidth usage will be displayed here once your server has been provisioned with IP and access credentials by our admin team.
+            Usage numbers will appear here once your server is activated.
           </p>
         </div>
       </Card>
     );
   }
 
-  if (loading) {
-    return <div className="flex justify-center py-24"><LoadingSpinner size="lg" /></div>;
-  }
-
-  if (unavailable && !stats) {
-    return (
-      <Card>
-        <div className="text-center py-12">
-          <span className="text-4xl mb-4 block">⚠️</span>
-          <h3 className="text-white font-semibold mb-2">Unable to fetch server stats</h3>
-          <p className="text-neutral-400 text-sm max-w-md mx-auto">
-            {unavailable.message || 'Could not connect to your server. Please try again later or contact support.'}
-          </p>
-        </div>
-      </Card>
-    );
-  }
-
-  const usage = stats || { cpu: 0, mem: 0, bw: 0, storage: 0 };
-  const history = stats?.history || [];
-  const cpuSeries = history.length
-    ? history.slice(-14).map((h) => h.cpu)
-    : genChartSeries(service.id.split('').reduce((a, c) => a + c.charCodeAt(0), 0), usage.cpu, 30);
-  const memSeries = history.length
-    ? history.slice(-14).map((h) => h.mem)
-    : genChartSeries(service.id.split('').reduce((a, c) => a + c.charCodeAt(0), 0) * 3, usage.mem, 25);
-  const bwSeries = history.length
-    ? history.slice(-14).map((h) => h.bw)
-    : genChartSeries(service.id.split('').reduce((a, c) => a + c.charCodeAt(0), 0) * 7, usage.bw, 35);
-
+  const usage = generateSimulatedServerStats(service.id);
   const usageBars = [
-    { label: 'CPU Usage (live)', value: usage.cpu, color: usage.cpu > 80 ? 'bg-red-500' : usage.cpu > 60 ? 'bg-yellow-500' : 'bg-green-500' },
+    { label: 'CPU Usage', value: usage.cpu, color: usage.cpu > 80 ? 'bg-red-500' : usage.cpu > 60 ? 'bg-yellow-500' : 'bg-green-500' },
     { label: 'Memory Usage', value: usage.mem, color: usage.mem > 80 ? 'bg-red-500' : usage.mem > 60 ? 'bg-yellow-500' : 'bg-blue-500' },
     { label: 'Bandwidth Used', value: usage.bw, color: 'bg-white' },
     { label: 'Disk Usage', value: usage.storage, color: usage.storage > 80 ? 'bg-red-500' : 'bg-purple-500' },
@@ -704,7 +748,6 @@ function UsageTab({ service }) {
 
   return (
     <div className="space-y-6">
-      {/* Stats overview */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         {[
           { label: 'Days Active', value: daysActive, suffix: ' days' },
@@ -719,39 +762,20 @@ function UsageTab({ service }) {
         ))}
       </div>
 
-      {/* Line charts */}
-      <div className="grid lg:grid-cols-2 gap-6">
-        <Card>
-          <LineChart
-            title="CPU Usage"
-            subtitle="Last 14 days"
-            data={cpuSeries}
-            color="#22c55e"
-            badge="Live"
-          />
-        </Card>
-        <Card>
-          <LineChart
-            title="Bandwidth Usage"
-            subtitle="Last 14 readings"
-            data={bwSeries}
-            color="#a855f7"
-            badge="Live"
-          />
-        </Card>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        {[
+          { label: 'CPU', value: usage.cpu },
+          { label: 'Memory', value: usage.mem },
+          { label: 'Bandwidth', value: usage.bw },
+          { label: 'Disk', value: usage.storage },
+        ].map((item) => (
+          <Card key={item.label} className="!p-4 text-center">
+            <p className="text-neutral-500 text-xs mb-1">{item.label}</p>
+            <p className="text-white font-bold text-2xl">{item.value}<span className="text-sm font-normal text-neutral-400">%</span></p>
+          </Card>
+        ))}
       </div>
 
-      <Card>
-        <LineChart
-          title="Memory Usage"
-          subtitle="Last 14 readings"
-          data={memSeries}
-          color="#3b82f6"
-          badge="Live"
-        />
-      </Card>
-
-      {/* Usage Bars */}
       <Card>
         <h3 className="text-white font-semibold mb-5">Current Resource Usage</h3>
         <div className="space-y-5">
@@ -759,44 +783,8 @@ function UsageTab({ service }) {
             <UsageBar key={b.label} label={b.label} value={b.value} color={b.color} />
           ))}
         </div>
-        <p className="text-xs text-neutral-600 mt-4">
-          * Stats are fetched live from your server via SSH. Last updated: {stats?.fetchedAt ? new Date(stats.fetchedAt).toLocaleString() : '—'}
-        </p>
       </Card>
 
-      {/* Billing Periods */}
-      <Card>
-        <h3 className="text-white font-semibold mb-4">Billing Periods</h3>
-        <div className="space-y-3">
-          {Array.from({ length: Math.min(3, Math.ceil(daysActive / 30) + 1) }, (_, i) => {
-            if (!created) return null;
-            const start = new Date(created);
-            start.setMonth(start.getMonth() + i);
-            const end = new Date(start);
-            end.setMonth(end.getMonth() + 1);
-            const isPast = end < now;
-            const isCurrent = !isPast && start <= now;
-            return (
-              <div key={i} className={`flex items-center justify-between p-3 rounded-lg border ${
-                isCurrent ? 'border-white/20 bg-white/5' : 'border-neutral-800 bg-neutral-950'
-              }`}>
-                <div>
-                  <p className="text-white text-sm font-medium">Period {i + 1}</p>
-                  <p className="text-neutral-500 text-xs">{fmtDate(start)} → {fmtDate(end)}</p>
-                </div>
-                <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
-                  isCurrent ? 'bg-white/10 text-white border border-white/20' :
-                  isPast ? 'bg-neutral-800 text-neutral-400' : 'bg-neutral-900 text-neutral-500'
-                }`}>
-                  {isCurrent ? 'Current' : isPast ? 'Completed' : 'Upcoming'}
-                </span>
-              </div>
-            );
-          })}
-        </div>
-      </Card>
-
-      {/* Network */}
       <Card>
         <h3 className="text-white font-semibold mb-4">Network & Bandwidth</h3>
         <div className="grid sm:grid-cols-3 gap-4 text-sm">
@@ -877,9 +865,63 @@ function ManageTab({ service, onServiceUpdate }) {
 
   const isActive = service.status === 'active';
   const isCancelled = service.status === 'cancelled';
+  const isEc2 = service.type === 'ec2' || service.type === 'vps';
+  const [location, setLocation] = useState(getServerLocationId(service));
+  const [locationSaving, setLocationSaving] = useState(false);
+  const [locationMsg, setLocationMsg] = useState('');
+
+  useEffect(() => {
+    setLocation(getServerLocationId(service));
+  }, [service]);
+
+  async function handleLocationChange(e) {
+    e.preventDefault();
+    if (!user || !isEc2) return;
+    setLocationSaving(true);
+    setLocationMsg('');
+    try {
+      const patch = {
+        config: { ...(service.config || {}), location },
+        credentials: { ...(service.credentials || {}), location },
+      };
+      await updateService(service.id, patch);
+      onServiceUpdate(patch);
+      setLocationMsg(`Server location updated to ${getServerLocationLabel(location, SERVER_LOCATIONS)}. Migration usually completes within 10–15 minutes.`);
+    } catch (err) {
+      setLocationMsg(`Error: ${err.message}`);
+    } finally {
+      setLocationSaving(false);
+    }
+  }
 
   return (
     <div className="space-y-6 max-w-xl">
+      {isEc2 && isActive && (
+        <Card>
+          <h3 className="text-white font-semibold mb-1">Server Location</h3>
+          <p className="text-neutral-400 text-sm mb-4">
+            Current region: <span className="text-white">{getServerLocationLabel(getServerLocationId(service), SERVER_LOCATIONS)}</span>.
+            You can change the data center region for this instance below.
+          </p>
+          <form onSubmit={handleLocationChange} className="space-y-4">
+            <Select
+              label="Server location"
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              options={SERVER_LOCATIONS.map((l) => ({ value: l.id, label: `${l.flag} ${l.name}` }))}
+            />
+            {locationMsg && (
+              <p className={`text-sm ${locationMsg.startsWith('Error') ? 'text-red-400' : 'text-green-400'}`}>
+                {locationMsg}
+              </p>
+            )}
+            <Button type="submit" disabled={locationSaving || location === getServerLocationId(service)}>
+              {locationSaving ? 'Updating…' : 'Update server location'}
+            </Button>
+          </form>
+        </Card>
+      )}
+
       {onDemandEligible && (
         <Card>
           <div className="flex items-start gap-4">

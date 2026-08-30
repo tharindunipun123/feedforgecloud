@@ -15,6 +15,10 @@ const geistMono = Geist_Mono({
 export const metadata = {
   title: 'Feed Forge — EC2 Hosting Platform',
   description: 'Enterprise EC2 hosting, pay-as-you-go servers, n8n automation, AI website builder, and chatbot services.',
+  icons: {
+    icon: [{ url: '/icon.svg', type: 'image/svg+xml' }],
+    apple: [{ url: '/apple-icon.svg', type: 'image/svg+xml' }],
+  },
 };
 
 export default function RootLayout({ children }) {
