@@ -2,6 +2,16 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
+import {
+  CheckCircle2,
+  Clock,
+  Zap,
+  CreditCard,
+  BarChart3,
+  Sparkles,
+  Globe,
+  Ticket,
+} from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { PageHeader, Card, LoadingSpinner, StatusBadge, EmptyState, Button, PromoBanner } from '@/components/ui';
 import {
@@ -158,19 +168,24 @@ export default function DashboardOverviewPage() {
       {/* Stats row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         {[
-          { label: 'Active Services', value: activeServices.length, href: '/dashboard/services', icon: '✅' },
-          { label: 'Pending Activation', value: pendingServices.length, href: '/dashboard/services', icon: '⏳' },
-          { label: 'EC2 Instances', value: ec2Services.length, href: '/dashboard/services/ec2', icon: '⚡' },
-          { label: 'Unpaid Invoices', value: unpaidInvoices.length, href: '/dashboard/invoices', icon: '💳' },
-        ].map((stat) => (
-          <Link key={stat.label} href={stat.href}>
-            <Card hover className="text-center !p-5">
-              <p className="text-2xl mb-1">{stat.icon}</p>
-              <p className="text-3xl font-bold text-white">{stat.value}</p>
-              <p className="text-xs text-neutral-400 mt-1">{stat.label}</p>
-            </Card>
-          </Link>
-        ))}
+          { label: 'Active Services', value: activeServices.length, href: '/dashboard/services', icon: CheckCircle2 },
+          { label: 'Pending Activation', value: pendingServices.length, href: '/dashboard/services', icon: Clock },
+          { label: 'EC2 Instances', value: ec2Services.length, href: '/dashboard/services/ec2', icon: Zap },
+          { label: 'Unpaid Invoices', value: unpaidInvoices.length, href: '/dashboard/invoices', icon: CreditCard },
+        ].map((stat) => {
+          const Icon = stat.icon;
+          return (
+            <Link key={stat.label} href={stat.href}>
+              <Card hover className="text-center !p-5">
+                <div className="flex justify-center mb-2">
+                  <Icon className="w-6 h-6 text-neutral-400" strokeWidth={1.75} />
+                </div>
+                <p className="text-3xl font-bold text-white">{stat.value}</p>
+                <p className="text-xs text-neutral-400 mt-1">{stat.label}</p>
+              </Card>
+            </Link>
+          );
+        })}
       </div>
 
       {ec2Stats ? (
@@ -181,7 +196,7 @@ export default function DashboardOverviewPage() {
             <h2 className="text-lg font-semibold text-white">Server usage</h2>
           </div>
           <div className="flex flex-col items-center justify-center py-10 text-center">
-            <span className="text-4xl mb-3">📊</span>
+            <BarChart3 className="w-10 h-10 text-neutral-500 mb-3" strokeWidth={1.5} />
             <p className="text-white font-medium mb-1">Server stats pending</p>
             <p className="text-neutral-400 text-sm mb-4">
               {ec2Services.length > 0
@@ -226,7 +241,10 @@ export default function DashboardOverviewPage() {
             <Link href="/dashboard/invoices" className="text-sm text-neutral-400 hover:text-white">View all</Link>
           </div>
           {unpaidInvoices.length === 0 ? (
-            <p className="text-neutral-400 text-sm py-4">All invoices are paid. ✅</p>
+            <p className="text-neutral-400 text-sm py-4 flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-neutral-500" strokeWidth={1.75} />
+              All invoices are paid.
+            </p>
           ) : (
             <ul className="space-y-2">
               {unpaidInvoices.slice(0, 5).map((inv) => (
@@ -266,18 +284,21 @@ export default function DashboardOverviewPage() {
           <h2 className="text-lg font-semibold text-white mb-4">Quick actions</h2>
           <div className="grid grid-cols-2 gap-3">
             {[
-              { label: 'Deploy EC2', href: '/ec2-pricing', icon: '⚡' },
-              { label: 'AI Website', href: '/dashboard/ai-website', icon: '✨' },
-              { label: 'CDN Assets', href: '/dashboard/cdn/upload', icon: '🌍' },
-              { label: 'New Ticket', href: '/dashboard/support', icon: '🎫' },
-            ].map((a) => (
-              <Link key={a.label} href={a.href}>
-                <div className="flex items-center gap-3 p-3 bg-neutral-900 border border-neutral-800 rounded-xl hover:border-neutral-600 transition-colors">
-                  <span className="text-xl">{a.icon}</span>
-                  <span className="text-sm text-neutral-300 font-medium">{a.label}</span>
-                </div>
-              </Link>
-            ))}
+              { label: 'Deploy EC2', href: '/ec2-pricing', icon: Zap },
+              { label: 'AI Website', href: '/dashboard/ai-website', icon: Sparkles },
+              { label: 'CDN Assets', href: '/dashboard/cdn/upload', icon: Globe },
+              { label: 'New Ticket', href: '/dashboard/support', icon: Ticket },
+            ].map((a) => {
+              const Icon = a.icon;
+              return (
+                <Link key={a.label} href={a.href}>
+                  <div className="flex items-center gap-3 p-3 bg-neutral-900 border border-neutral-800 rounded-xl hover:border-neutral-600 transition-colors">
+                    <Icon className="w-5 h-5 text-neutral-400 shrink-0" strokeWidth={1.75} />
+                    <span className="text-sm text-neutral-300 font-medium">{a.label}</span>
+                  </div>
+                </Link>
+              );
+            })}
           </div>
         </Card>
       </div>

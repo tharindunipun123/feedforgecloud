@@ -3,6 +3,29 @@
 import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
+import {
+  ShoppingCart,
+  CheckCircle2,
+  RefreshCw,
+  XCircle,
+  Clock,
+  Lock,
+  Shield,
+  Terminal,
+  AppWindow,
+  Code2,
+  Monitor,
+  KeyRound,
+  Ban,
+  ShieldCheck,
+  ClipboardList,
+  BarChart3,
+  AlertTriangle,
+  LayoutDashboard,
+  Plug,
+  Activity,
+  Settings,
+} from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { PageHeader, Card, LoadingSpinner, StatusBadge, Button, Select } from '@/components/ui';
 import {
@@ -54,13 +77,13 @@ function generateBillingTimeline(service) {
   const created = toDate(service.createdAt);
   if (!created) return [];
   const events = [];
-  events.push({ date: created, label: 'Service purchased', type: 'purchase', icon: '🛒' });
+  events.push({ date: created, label: 'Service purchased', type: 'purchase', icon: ShoppingCart });
   const activated = toDate(service.activatedAt);
-  if (activated) events.push({ date: activated, label: 'Service activated', type: 'active', icon: '✅' });
+  if (activated) events.push({ date: activated, label: 'Service activated', type: 'active', icon: CheckCircle2 });
   const next = toDate(service.nextRenewalDate);
-  if (next) events.push({ date: next, label: 'Next renewal', type: 'renewal', icon: '🔄' });
+  if (next) events.push({ date: next, label: 'Next renewal', type: 'renewal', icon: RefreshCw });
   if (service.cancelledAt) {
-    events.push({ date: toDate(service.cancelledAt), label: 'Service cancelled', type: 'cancelled', icon: '❌' });
+    events.push({ date: toDate(service.cancelledAt), label: 'Service cancelled', type: 'cancelled', icon: XCircle });
   }
   return events.sort((a, b) => a.date - b.date);
 }
@@ -181,7 +204,7 @@ function OverviewTab({ service, invoices }) {
 
       {service.status === 'provisioning' && (
         <div className="bg-yellow-950/40 border border-yellow-800/40 rounded-xl px-5 py-4 flex gap-3 items-start">
-          <span className="text-yellow-400 text-lg mt-0.5">⏳</span>
+          <Clock className="w-5 h-5 text-yellow-400 shrink-0 mt-0.5" strokeWidth={1.75} />
           <div>
             <p className="text-yellow-300 font-medium text-sm">
               {service.type === 'ssl_certificate' ? 'Pending — installing temporary SSL' : 'Pending activation'}
@@ -197,7 +220,9 @@ function OverviewTab({ service, invoices }) {
 
       {service.status === 'temp_ssl_active' && service.type === 'ssl_certificate' && (
         <div className="bg-emerald-950/40 border border-emerald-800/40 rounded-xl px-5 py-4 flex gap-3 items-start">
-          <span className="text-emerald-400 text-lg mt-0.5">🔒</span>
+          <span className="text-emerald-400 shrink-0 mt-0.5">
+            <Lock className="w-5 h-5" strokeWidth={1.75} />
+          </span>
           <div>
             <p className="text-emerald-300 font-medium text-sm">Temporary SSL is active</p>
             <p className="text-emerald-500/80 text-xs mt-0.5">
@@ -341,8 +366,11 @@ function OverviewTab({ service, invoices }) {
           <div className="space-y-5">
             {timeline.map((ev, i) => (
               <div key={i} className="flex items-start gap-4 pl-12 relative">
-                <div className="absolute left-0 w-8 h-8 rounded-full bg-neutral-900 border border-neutral-700 flex items-center justify-center text-base shrink-0">
-                  {ev.icon}
+                <div className="absolute left-0 w-8 h-8 rounded-full bg-neutral-900 border border-neutral-700 flex items-center justify-center shrink-0">
+                  {(() => {
+                    const Icon = ev.icon;
+                    return <Icon className="w-4 h-4 text-neutral-300" strokeWidth={1.75} />;
+                  })()}
                 </div>
                 <div>
                   <p className="text-white text-sm font-medium">{ev.label}</p>
@@ -399,7 +427,7 @@ function ConnectTab({ service }) {
     return (
       <Card>
         <div className="text-center py-12">
-          <span className="text-4xl mb-4 block">🔐</span>
+          <Shield className="w-10 h-10 text-neutral-500 mb-4 mx-auto" strokeWidth={1.5} />
           <h3 className="text-white font-semibold mb-2">Connection details not yet available</h3>
           <p className="text-neutral-400 text-sm max-w-md mx-auto">
             Your server IP, username, and password will appear here once our team has finished provisioning your instance. This usually takes 10–15 minutes after payment.
@@ -412,7 +440,7 @@ function ConnectTab({ service }) {
   const guides = {
     linux: {
       label: 'Linux / macOS',
-      icon: '🐧',
+      icon: Terminal,
       steps: [
         {
           title: 'Step 1 — Open Terminal',
@@ -454,7 +482,7 @@ ssh ${user}@${ip} -p ${port}`,
     },
     windows: {
       label: 'Windows (PuTTY)',
-      icon: '🪟',
+      icon: AppWindow,
       steps: [
         {
           title: 'Step 1 — Download PuTTY',
@@ -497,7 +525,7 @@ Password: (hidden — use Copy password in credentials)`,
     },
     vscode: {
       label: 'VS Code Remote',
-      icon: '💻',
+      icon: Code2,
       steps: [
         {
           title: 'Step 1 — Install Remote - SSH Extension',
@@ -535,7 +563,7 @@ Password: (hidden — use Copy password in credentials)`,
     },
     vnc: {
       label: 'VNC Desktop',
-      icon: '🖥️',
+      icon: Monitor,
       steps: [
         {
           title: 'Step 1 — Download VNC Viewer',
@@ -621,7 +649,12 @@ vncserver :1
                   : 'border-neutral-700 text-neutral-400 hover:border-neutral-500 hover:text-white'
               }`}
             >
-              <span>{g.icon}</span>
+              <span>
+                {(() => {
+                  const Icon = g.icon;
+                  return <Icon className="w-4 h-4" strokeWidth={1.75} />;
+                })()}
+              </span>
               {g.label}
             </button>
           ))}
@@ -700,18 +733,21 @@ vncserver :1
         <h3 className="text-white font-semibold mb-3">Security Best Practices</h3>
         <div className="grid sm:grid-cols-2 gap-3">
           {[
-            { icon: '🔑', tip: 'Use SSH key authentication instead of passwords.' },
-            { icon: '🔒', tip: 'Change your root password immediately after first login.' },
-            { icon: '🚫', tip: 'Disable root login — create a sudo user instead.' },
-            { icon: '🛡️', tip: 'Enable a firewall (ufw) and only allow needed ports.' },
-            { icon: '🔄', tip: 'Keep your system updated: sudo apt update && sudo apt upgrade' },
-            { icon: '📋', tip: 'Review auth logs regularly: tail -f /var/log/auth.log' },
-          ].map((b, i) => (
-            <div key={i} className="flex items-start gap-3 bg-neutral-900 rounded-lg p-3">
-              <span className="text-lg">{b.icon}</span>
-              <p className="text-neutral-300 text-xs leading-relaxed">{b.tip}</p>
-            </div>
-          ))}
+            { icon: KeyRound, tip: 'Use SSH key authentication instead of passwords.' },
+            { icon: Lock, tip: 'Change your root password immediately after first login.' },
+            { icon: Ban, tip: 'Disable root login — create a sudo user instead.' },
+            { icon: ShieldCheck, tip: 'Enable a firewall (ufw) and only allow needed ports.' },
+            { icon: RefreshCw, tip: 'Keep your system updated: sudo apt update && sudo apt upgrade' },
+            { icon: ClipboardList, tip: 'Review auth logs regularly: tail -f /var/log/auth.log' },
+          ].map((b, i) => {
+            const Icon = b.icon;
+            return (
+              <div key={i} className="flex items-start gap-3 bg-neutral-900 rounded-lg p-3">
+                <Icon className="w-4 h-4 text-neutral-400 shrink-0 mt-0.5" strokeWidth={1.75} />
+                <p className="text-neutral-300 text-xs leading-relaxed">{b.tip}</p>
+              </div>
+            );
+          })}
         </div>
       </Card>
 
@@ -751,7 +787,7 @@ function UsageTab({ service }) {
     return (
       <Card>
         <div className="text-center py-12">
-          <span className="text-4xl mb-4 block">📊</span>
+          <BarChart3 className="w-10 h-10 text-neutral-500 mb-4 mx-auto" strokeWidth={1.5} />
           <h3 className="text-white font-semibold mb-2">Server stats not yet available</h3>
           <p className="text-neutral-400 text-sm max-w-md mx-auto">
             Usage numbers will appear here once your server is activated.
@@ -1071,7 +1107,10 @@ function ManageTab({ service, onServiceUpdate }) {
 
               {cancelStep === 1 && (
                 <div className="bg-red-950/30 border border-red-900/40 rounded-xl p-4 mb-4">
-                  <p className="text-red-300 font-medium text-sm mb-1">⚠️ Are you absolutely sure?</p>
+                  <p className="text-red-300 font-medium text-sm mb-1 flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4" strokeWidth={1.75} />
+                    Are you absolutely sure?
+                  </p>
                   <p className="text-red-400/80 text-xs">Your EC2 instance and all data will be permanently removed. Make sure you have backed up everything you need.</p>
                 </div>
               )}
@@ -1110,7 +1149,7 @@ function ManageTab({ service, onServiceUpdate }) {
       {isCancelled && (
         <Card>
           <div className="flex items-center gap-3 text-neutral-400">
-            <span className="text-2xl">❌</span>
+            <XCircle className="w-6 h-6 text-neutral-500 shrink-0" strokeWidth={1.75} />
             <div>
               <p className="text-white font-medium">Service Cancelled</p>
               <p className="text-sm">This service was cancelled on {fmtDate(service.cancelledAt)}.</p>
@@ -1125,10 +1164,10 @@ function ManageTab({ service, onServiceUpdate }) {
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 
 const TABS = [
-  { id: 'overview', label: 'Overview', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6' },
-  { id: 'connect', label: 'Connect', icon: 'M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z' },
-  { id: 'usage', label: 'Usage & Stats', icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z' },
-  { id: 'manage', label: 'Manage', icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z' },
+  { id: 'overview', label: 'Overview', icon: LayoutDashboard },
+  { id: 'connect', label: 'Connect', icon: Plug },
+  { id: 'usage', label: 'Usage & Stats', icon: Activity },
+  { id: 'manage', label: 'Manage', icon: Settings },
 ];
 
 export default function ServiceDetailPage() {
@@ -1198,22 +1237,23 @@ export default function ServiceDetailPage() {
 
       {/* Tab nav */}
       <div className="flex gap-1 border-b border-neutral-800 mb-6 overflow-x-auto">
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={`flex items-center gap-2 px-4 py-3 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
-              activeTab === tab.id
-                ? 'border-white text-white'
-                : 'border-transparent text-neutral-400 hover:text-white'
-            }`}
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d={tab.icon} />
-            </svg>
-            {tab.label}
-          </button>
-        ))}
+        {tabs.map((tab) => {
+          const Icon = tab.icon;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex items-center gap-2 px-4 py-3 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
+                activeTab === tab.id
+                  ? 'border-white text-white'
+                  : 'border-transparent text-neutral-400 hover:text-white'
+              }`}
+            >
+              <Icon className="w-4 h-4" strokeWidth={1.75} />
+              {tab.label}
+            </button>
+          );
+        })}
       </div>
 
       {/* Tab content */}

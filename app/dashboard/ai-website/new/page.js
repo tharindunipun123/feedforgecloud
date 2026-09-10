@@ -3,19 +3,30 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import {
+  Building2,
+  User,
+  ShoppingBag,
+  PenLine,
+  UtensilsCrossed,
+  Palette,
+  Zap,
+  Globe,
+  ArrowLeft,
+} from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { PageHeader, Card, Button, Input } from '@/components/ui';
 import { createAiWebsiteProject, getUserAiWebsitePlan } from '@/lib/firebase/ai-website';
 
 const WEBSITE_TYPES = [
-  { id: 'business', label: 'Business / Corporate', icon: '🏢' },
-  { id: 'portfolio', label: 'Portfolio / Personal', icon: '👤' },
-  { id: 'ecommerce', label: 'E-commerce / Shop', icon: '🛍️' },
-  { id: 'blog', label: 'Blog / Magazine', icon: '✍️' },
-  { id: 'restaurant', label: 'Restaurant / Food', icon: '🍽️' },
-  { id: 'agency', label: 'Agency / Creative', icon: '🎨' },
-  { id: 'saas', label: 'SaaS / Tech Product', icon: '⚡' },
-  { id: 'other', label: 'Other', icon: '🌐' },
+  { id: 'business', label: 'Business / Corporate', icon: Building2 },
+  { id: 'portfolio', label: 'Portfolio / Personal', icon: User },
+  { id: 'ecommerce', label: 'E-commerce / Shop', icon: ShoppingBag },
+  { id: 'blog', label: 'Blog / Magazine', icon: PenLine },
+  { id: 'restaurant', label: 'Restaurant / Food', icon: UtensilsCrossed },
+  { id: 'agency', label: 'Agency / Creative', icon: Palette },
+  { id: 'saas', label: 'SaaS / Tech Product', icon: Zap },
+  { id: 'other', label: 'Other', icon: Globe },
 ];
 
 export default function NewAiWebsiteProjectPage() {
@@ -51,9 +62,7 @@ export default function NewAiWebsiteProjectPage() {
     <div className="max-w-2xl">
       <div className="mb-6">
         <Link href="/dashboard/ai-website" className="inline-flex items-center text-sm text-neutral-400 hover:text-white transition-colors mb-4">
-          <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
+          <ArrowLeft className="w-4 h-4 mr-1" strokeWidth={2} />
           Back to projects
         </Link>
         <PageHeader title="New AI Website Project" description="Tell us about your website and we'll set up your builder." />
@@ -86,21 +95,24 @@ export default function NewAiWebsiteProjectPage() {
         <Card>
           <h3 className="text-white font-medium mb-4">What type of website?</h3>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {WEBSITE_TYPES.map((type) => (
-              <button
-                key={type.id}
-                type="button"
-                onClick={() => setWebsiteType(type.id)}
-                className={`flex flex-col items-center gap-2 p-3 rounded-lg border text-sm font-medium transition-all ${
-                  websiteType === type.id
-                    ? 'border-white bg-neutral-800 text-white'
-                    : 'border-neutral-700 bg-neutral-900 text-neutral-400 hover:border-neutral-500 hover:text-white'
-                }`}
-              >
-                <span className="text-2xl">{type.icon}</span>
-                <span className="text-center leading-tight">{type.label}</span>
-              </button>
-            ))}
+            {WEBSITE_TYPES.map((type) => {
+              const Icon = type.icon;
+              return (
+                <button
+                  key={type.id}
+                  type="button"
+                  onClick={() => setWebsiteType(type.id)}
+                  className={`flex flex-col items-center gap-2 p-3 rounded-lg border text-sm font-medium transition-all ${
+                    websiteType === type.id
+                      ? 'border-white bg-neutral-800 text-white'
+                      : 'border-neutral-700 bg-neutral-900 text-neutral-400 hover:border-neutral-500 hover:text-white'
+                  }`}
+                >
+                  <Icon className="w-6 h-6" strokeWidth={1.75} />
+                  <span className="text-center leading-tight">{type.label}</span>
+                </button>
+              );
+            })}
           </div>
         </Card>
 
