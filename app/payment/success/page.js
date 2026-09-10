@@ -11,7 +11,9 @@ import { isPaymentTestMode } from '@/data/countries';
 function PaymentSuccessContent() {
   const searchParams = useSearchParams();
   const orderId = searchParams.get('orderId');
+  const invoiceId = searchParams.get('invoiceId');
   const sessionId = searchParams.get('session_id');
+  const isRenewal = !!invoiceId;
   const { user, loading: authLoading } = useAuth();
   const [verifying, setVerifying] = useState(!!sessionId && !isPaymentTestMode());
   const [error, setError] = useState('');
@@ -34,7 +36,7 @@ function PaymentSuccessContent() {
         const res = await fetch('/api/stripe/verify-session', {
           method: 'POST',
           headers,
-          body: JSON.stringify({ sessionId, orderId }),
+          body: JSON.stringify({ sessionId, orderId, invoiceId }),
         });
 
         const data = await res.json();
@@ -59,14 +61,16 @@ function PaymentSuccessContent() {
     return () => {
       cancelled = true;
     };
-  }, [sessionId, orderId, user, authLoading]);
+  }, [sessionId, orderId, invoiceId, user, authLoading]);
 
   if (verifying) {
     return (
       <PublicLayout>
         <div className="flex flex-col items-center justify-center py-24 gap-4">
           <LoadingSpinner size="lg" />
-          <p className="text-neutral-400 text-sm">Confirming your payment and creating your services…</p>
+          <p className="text-neutral-400 text-sm">
+            {isRenewal ? 'Confirming your renewal payment…' : 'Confirming your payment and creating your services…'}
+          </p>
         </div>
       </PublicLayout>
     );
@@ -86,14 +90,23 @@ function PaymentSuccessContent() {
             <p className="text-yellow-400 text-sm mb-3">{error}</p>
           ) : null}
           <p className="text-neutral-300 leading-relaxed">
-            Your payment was successful and your order has been received.
-            {serviceCount > 0
-              ? ` ${serviceCount} service${serviceCount === 1 ? '' : 's'} ${serviceCount === 1 ? 'is' : 'are'} now listed in your dashboard with a pending status while our team completes setup.`
-              : ' Your services will appear in your dashboard shortly with a pending status while our team completes setup.'}
-            {' '}Activation usually takes 10–15 minutes. Credentials will appear once ready.
+            {isRenewal
+              ? 'Your renewal payment was successful. Your service has been extended and will remain active.'
+              : (
+                <>
+                  Your payment was successful and your order has been received.
+                  {serviceCount > 0
+                    ? ` ${serviceCount} service${serviceCount === 1 ? '' : 's'} ${serviceCount === 1 ? 'is' : 'are'} now listed in your dashboard with a pending status while our team completes setup.`
+                    : ' Your services will appear in your dashboard shortly with a pending status while our team completes setup.'}
+                  {' '}Activation usually takes 10–15 minutes. Credentials will appear once ready.
+                </>
+              )}
           </p>
           {orderId && (
             <p className="text-sm text-neutral-500 mt-4">Order ID: {orderId}</p>
+          )}
+          {invoiceId && (
+            <p className="text-sm text-neutral-500 mt-4">Invoice ID: {invoiceId}</p>
           )}
         </Card>
         <div className="flex flex-col sm:flex-row gap-4 justify-center">

@@ -6,6 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { PageHeader, Card, LoadingSpinner, StatusBadge, EmptyState, Button } from '@/components/ui';
 import { getUserInvoices } from '@/lib/firebase/firestore';
 import { formatCurrency, formatBillingDate, isPastDue, getDaysOverdue } from '@/lib/billing/helpers';
+import RenewalPayButton from '@/components/billing/RenewalPayButton';
 
 export default function InvoicesPage() {
   const { user } = useAuth();
@@ -51,7 +52,10 @@ export default function InvoicesPage() {
                     <td className="py-3 pr-4"><StatusBadge status={overdue ? 'overdue' : inv.status} /></td>
                     <td className="py-3 pr-4 text-white">{formatCurrency(inv.total)}</td>
                     <td className="py-3">
-                      <Link href={`/dashboard/invoices/${inv.id}`} className="text-white hover:underline">View</Link>
+                      <div className="flex items-center gap-3">
+                        <Link href={`/dashboard/invoices/${inv.id}`} className="text-white hover:underline">View</Link>
+                        {inv.status === 'unpaid' && <RenewalPayButton invoiceId={inv.id} />}
+                      </div>
                     </td>
                   </tr>
                 );

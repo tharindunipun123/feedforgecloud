@@ -157,6 +157,7 @@ export function StatusBadge({ status }) {
     unpaid: 'warning',
     paid: 'success',
     overdue: 'danger',
+    renewal_due: 'danger',
     draft: 'default',
     open: 'warning',
     in_progress: 'default',
@@ -168,6 +169,7 @@ export function StatusBadge({ status }) {
     pending_payment: 'Pending payment',
     payment_confirmed: 'Payment confirmed',
     temp_ssl_active: 'Temp SSL active',
+    renewal_due: 'Renewal due',
   };
   const label = labelMap[status] || (status || '').replace(/_/g, ' ');
   return <Badge variant={statusMap[status] || 'default'}>{label}</Badge>;

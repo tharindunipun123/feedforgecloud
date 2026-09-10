@@ -8,6 +8,7 @@ import { PageHeader, Card, LoadingSpinner, StatusBadge, Button } from '@/compone
 import { getInvoice } from '@/lib/firebase/firestore';
 import { generateInvoicePDF } from '@/lib/billing/invoice-pdf';
 import { formatCurrency, formatBillingDate, isPastDue, getDaysOverdue } from '@/lib/billing/helpers';
+import RenewalPayButton from '@/components/billing/RenewalPayButton';
 
 export default function InvoiceDetailPage() {
   const { id } = useParams();
@@ -42,7 +43,12 @@ export default function InvoiceDetailPage() {
         title={invoice.invoiceNumber}
         description={`Issued ${formatBillingDate(invoice.issueDate)}`}
         action={
-          <Button onClick={() => generateInvoicePDF(invoice, userData || user)}>Download PDF</Button>
+          <div className="flex flex-wrap gap-2">
+            {invoice.status === 'unpaid' && (
+              <RenewalPayButton invoiceId={invoice.id} label={`Pay ${formatCurrency(invoice.total)}`} size="md" />
+            )}
+            <Button variant="secondary" onClick={() => generateInvoicePDF(invoice, userData || user)}>Download PDF</Button>
+          </div>
         }
       />
 

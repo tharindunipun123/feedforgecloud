@@ -16,6 +16,8 @@ import {
   updateService,
 } from '@/lib/firebase/firestore';
 import { formatBillingDate, formatCurrency } from '@/lib/billing/helpers';
+import { isRenewalDue, getRenewalUrgencyLabel } from '@/lib/billing/renewals';
+import RenewalPayButton from '@/components/billing/RenewalPayButton';
 import { SERVER_LOCATIONS } from '@/data/constants';
 import { hasServerAccess, isMonitorableService } from '@/lib/monitoring/helpers';
 import {
@@ -153,9 +155,30 @@ function OverviewTab({ service, invoices }) {
   const creds = service.credentials;
   const showCreds =
     (service.status === 'active' || service.status === 'temp_ssl_active') && creds;
+  const renewalDue = service.billingStatus === 'renewal_due' || isRenewalDue(service);
+  const renewalInvoice = invoices.find((i) => i.status === 'unpaid' && i.invoiceType === 'renewal');
 
   return (
     <div className="space-y-6">
+      {renewalDue && (
+        <div className="bg-red-950/40 border border-red-800/50 rounded-xl px-5 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <p className="text-red-300 font-medium text-sm">
+              {getRenewalUrgencyLabel(service) || 'Renewal due'} — {service.name}
+            </p>
+            <p className="text-red-400/80 text-xs mt-0.5">
+              Your service expires on {formatBillingDate(service.nextRenewalDate)}.
+              {renewalInvoice ? ` Pay ${formatCurrency(renewalInvoice.total)} to renew and keep service active.` : ' Pay the renewal invoice to continue service.'}
+            </p>
+          </div>
+          {renewalInvoice ? (
+            <RenewalPayButton invoiceId={renewalInvoice.id} label={`Pay ${formatCurrency(renewalInvoice.total)}`} size="md" />
+          ) : (
+            <Link href="/dashboard/invoices"><Button size="sm">View invoices</Button></Link>
+          )}
+        </div>
+      )}
+
       {service.status === 'provisioning' && (
         <div className="bg-yellow-950/40 border border-yellow-800/40 rounded-xl px-5 py-4 flex gap-3 items-start">
           <span className="text-yellow-400 text-lg mt-0.5">⏳</span>

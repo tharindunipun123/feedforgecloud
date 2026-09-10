@@ -10,8 +10,10 @@ import {
   getUserTickets,
 } from '@/lib/firebase/firestore';
 import { formatCurrency, formatBillingDate } from '@/lib/billing/helpers';
+import { isRenewalDue, getRenewalUrgencyLabel } from '@/lib/billing/renewals';
 import { hasServerAccess } from '@/lib/monitoring/helpers';
 import { generateSimulatedServerStats } from '@/lib/server/display';
+import RenewalPayButton from '@/components/billing/RenewalPayButton';
 
 function buildEc2Stats(services) {
   const ec2 = services.filter(
@@ -98,6 +100,10 @@ export default function DashboardOverviewPage() {
   );
   const ec2Services = services.filter((s) => s.type === 'ec2' || s.type === 'vps');
   const unpaidInvoices = invoices.filter((i) => i.status === 'unpaid');
+  const renewalDueServices = services.filter(
+    (s) => s.billingStatus === 'renewal_due' || isRenewalDue(s)
+  );
+  const totalDue = unpaidInvoices.reduce((sum, inv) => sum + (inv.total || 0), 0);
 
   if (loading) {
     return <div className="flex justify-center py-24"><LoadingSpinner size="lg" /></div>;
@@ -107,6 +113,47 @@ export default function DashboardOverviewPage() {
     <div>
       <PromoBanner section="overview" />
       <PageHeader title="Overview" description="Welcome back. Here is a summary of your account." />
+
+      {(renewalDueServices.length > 0 || unpaidInvoices.length > 0) && (
+        <Card className="mb-8 border-red-900/50 bg-red-950/20">
+          <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+            <div>
+              <h2 className="text-lg font-semibold text-white mb-1">Renewal payment required</h2>
+              <p className="text-neutral-400 text-sm mb-3">
+                {renewalDueServices.length > 0
+                  ? `${renewalDueServices.length} service${renewalDueServices.length === 1 ? '' : 's'} ${renewalDueServices.some((s) => getRenewalUrgencyLabel(s) === 'Expires today') ? 'expire today' : 'need renewal'}.`
+                  : 'You have unpaid invoices.'}
+                {totalDue > 0 ? ` Total due: ${formatCurrency(totalDue)}.` : ''}
+              </p>
+              <ul className="space-y-2">
+                {renewalDueServices.map((s) => {
+                  const inv = unpaidInvoices.find((i) => i.serviceId === s.id);
+                  return (
+                    <li key={s.id} className="flex flex-wrap items-center justify-between gap-2 text-sm py-2 border-b border-neutral-800/80 last:border-0">
+                      <div>
+                        <Link href={`/dashboard/services/${s.id}`} className="text-white hover:underline font-medium">
+                          {s.name}
+                        </Link>
+                        <span className="text-neutral-500 ml-2">
+                          · {getRenewalUrgencyLabel(s) || 'Renewal due'} · {formatBillingDate(s.nextRenewalDate)}
+                        </span>
+                      </div>
+                      {inv ? (
+                        <div className="flex items-center gap-3">
+                          <span className="text-white font-medium">{formatCurrency(inv.total)}</span>
+                          <RenewalPayButton invoiceId={inv.id} label={`Pay ${formatCurrency(inv.total)}`} />
+                        </div>
+                      ) : (
+                        <Link href="/dashboard/invoices" className="text-white hover:underline text-xs">View invoice</Link>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          </div>
+        </Card>
+      )}
 
       {/* Stats row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
@@ -183,9 +230,12 @@ export default function DashboardOverviewPage() {
           ) : (
             <ul className="space-y-2">
               {unpaidInvoices.slice(0, 5).map((inv) => (
-                <li key={inv.id} className="flex justify-between items-center py-2 border-b border-neutral-800 last:border-0 text-sm">
+                <li key={inv.id} className="flex flex-wrap justify-between items-center gap-2 py-2 border-b border-neutral-800 last:border-0 text-sm">
                   <Link href={`/dashboard/invoices/${inv.id}`} className="text-white hover:underline">{inv.invoiceNumber}</Link>
-                  <span className="text-neutral-400 text-xs">{formatCurrency(inv.total)} · Due {formatBillingDate(inv.dueDate)}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-neutral-400 text-xs">{formatCurrency(inv.total)} · Due {formatBillingDate(inv.dueDate)}</span>
+                    <RenewalPayButton invoiceId={inv.id} />
+                  </div>
                 </li>
               ))}
             </ul>
